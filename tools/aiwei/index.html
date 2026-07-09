@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 味检测 · 一眼识别 AI 写作痕迹</title>
+<style>
+  :root {
+    --canvas: #ffffff; --canvas-soft: #f6f5f4; --ink: #000; --ink-2: #31302e;
+    --ink-muted: #615d59; --ink-faint: #a39e98; --hairline: #e6e6e6;
+    --primary: #0075de; --primary-active: #005bab;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    /* 类别色 */
+    --c-toxic: #dc2626; --c-toxic-bg: #fee2e2;
+    --c-cliche: #d97706; --c-cliche-bg: #fef3c7;
+    --c-conn: #7c3aed; --c-conn-bg: #ede9fe;
+    --c-fake: #0891b2; --c-fake-bg: #cffafe;
+    --c-end: #db2777; --c-end-bg: #fce7f3;
+    --c-punct: #52525b; --c-punct-bg: #e4e4e7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; }
+  .app { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.top h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--ink); }
+  header.top p { color: var(--ink-muted); font-size: 14px; margin-top: 4px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-top: 20px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .pane { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+  .pane-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--ink-faint); border-bottom: 1px solid var(--hairline); }
+  textarea#ta {
+    width: 100%; min-height: 60vh; border: none; outline: none; resize: vertical;
+    padding: 18px; font-family: var(--sans); font-size: 15px; line-height: 1.9; color: var(--ink-2);
+  }
+  .btn { padding: 9px 22px; border-radius: 9999px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; font-family: var(--sans); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-active); }
+
+  /* 评分区 */
+  .scoreboard { display: flex; align-items: center; gap: 24px; padding: 20px; border-bottom: 1px solid var(--hairline); flex-wrap: wrap; }
+  .ring { position: relative; width: 96px; height: 96px; flex: none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .num b { font-size: 26px; color: var(--ink); line-height: 1; }
+  .ring .num span { font-size: 10px; color: var(--ink-faint); margin-top: 3px; }
+  .verdict b { font-size: 17px; color: var(--ink); display: block; margin-bottom: 4px; }
+  .verdict p { font-size: 13px; color: var(--ink-muted); line-height: 1.6; max-width: 320px; }
+  .stats { display: flex; gap: 18px; margin-left: auto; }
+  .stat { text-align: center; }
+  .stat b { font-size: 20px; color: var(--ink); display: block; }
+  .stat span { font-size: 11px; color: var(--ink-faint); }
+
+  /* 图例 */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--hairline); }
+  .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); padding: 3px 10px; border-radius: 9999px; background: var(--canvas-soft); }
+  .lg i { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* 高亮结果 */
+  #result { padding: 20px; font-size: 15px; line-height: 2.1; max-height: 46vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  #result:empty::before { content: '左侧粘贴内容，点「检测 AI 味」'; color: var(--ink-faint); }
+  mark {
+    padding: 1px 3px; border-radius: 4px; cursor: help; position: relative;
+    font-weight: 600; color: inherit;
+  }
+
+  /* 命中明细 */
+  .hits { border-top: 1px solid var(--hairline); max-height: 30vh; overflow-y: auto; }
+  .hit-row { display: flex; align-items: baseline; gap: 10px; padding: 9px 20px; border-bottom: 1px solid #f3f1ef; font-size: 13.5px; }
+  .hit-row:last-child { border-bottom: none; }
+  .hit-word { font-weight: 700; flex: none; }
+  .hit-cat { font-size: 11px; color: var(--ink-faint); flex: none; }
+  .hit-sugg { color: var(--ink-muted); }
+  .hit-sugg em { color: #059669; font-style: normal; font-weight: 600; }
+  .empty-tip { padding: 24px 20px; font-size: 14px; color: var(--ink-faint); text-align: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>AI 味检测</h1>
+    <p>纯本地规则检测，不调用大模型，内容不离开浏览器 · 高亮 AI 高频词句，给出替换建议和 AI 味指数</p>
+  </header>
+
+  <div class="cols">
+    <div class="pane">
+      <div class="pane-head">
+        <span>待检测文本</span>
+        <button class="btn btn-primary" id="go">检测 AI 味</button>
+      </div>
+      <textarea id="ta" spellcheck="false" placeholder="粘贴你的文章、笔记、文案……
+
+试试这句：
+在当今快速发展的时代，AI 不是简单的工具，而是深刻重塑行业格局的双刃剑。首先，它能够为企业赋能；其次，它提供了全新的方法论。综上所述，我们要拥抱变化，未来已来，让我们拭目以待。"></textarea>
+    </div>
+
+    <div class="pane">
+      <div class="scoreboard">
+        <div class="ring">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" fill="none" stroke="#eeece9" stroke-width="9"/>
+            <circle id="arc" cx="48" cy="48" r="42" fill="none" stroke="#059669" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div class="num"><b id="score">–</b><span>AI 味指数</span></div>
+        </div>
+        <div class="verdict">
+          <b id="verdict">等待检测</b>
+          <p id="advice">指数越低越像人话。计分综合命中密度与严重度：套话句式扣得最狠，机械连接词最轻。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="st-chars">0</b><span>字数</span></div>
+          <div class="stat"><b id="st-hits">0</b><span>命中</span></div>
+          <div class="stat"><b id="st-density">0</b><span>每千字</span></div>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div id="result"></div>
+      <div class="hits" id="hits"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 规则库 =================
+   参考：Humanizer-zh / stop-slop / ai-flavor-remover /
+   unclecheng-reduce-ai-perception（最毒句式、禁用词、标点禁令、公式化结尾）
+   cat: toxic 套话句式 / cliche AI高频词 / conn 机械连接词 / fake 模糊归因 / end 公式化结尾 / punct 标点
+   w: 扣分权重
+================================================ */
+const CATS = {
+  toxic:  { name: '套话句式',   color: 'var(--c-toxic)',  bg: 'var(--c-toxic-bg)',  w: 8 },
+  cliche: { name: 'AI 高频词',  color: 'var(--c-cliche)', bg: 'var(--c-cliche-bg)', w: 4 },
+  fake:   { name: '模糊归因',   color: 'var(--c-fake)',   bg: 'var(--c-fake-bg)',   w: 4 },
+  end:    { name: '公式化结尾', color: 'var(--c-end)',    bg: 'var(--c-end-bg)',    w: 5 },
+  conn:   { name: '机械连接词', color: 'var(--c-conn)',   bg: 'var(--c-conn-bg)',   w: 1.5 },
+  punct:  { name: '标点痕迹',   color: 'var(--c-punct)',  bg: 'var(--c-punct-bg)',  w: 1 },
+};
+
+// [正则, 类别, 建议]
+const RULES = [
+  // ---- 套话句式（最毒） ----
+  [/不仅仅是[^。！？\n，]{1,24}[，,]?(而是|更是)/g, 'toxic', '拆开直说，别对仗'],
+  [/不是[^。！？\n，]{1,20}[，,]\s*而是/g, 'toxic', '直接写后半句就够了'],
+  [/与其说[^。！？\n]{1,24}[，,]?不如说/g, 'toxic', '只保留你真正想说的那半句'],
+  [/在(这个|当今|如今)[^。！？\n]{0,16}的?(时代|世界|社会|浪潮|背景)下?/g, 'toxic', '删掉，直接进入正题'],
+  [/随着[^。！？\n]{2,20}的(发展|到来|普及|兴起|演进)/g, 'toxic', '删掉这类万能开头'],
+  [/让我们(一起|共同)?[^。！？\n]{0,12}(看看|走进|期待|拥抱|迎接)/g, 'toxic', '别号召读者，直接讲'],
+  [/(心中|心里)(涌起|泛起|升起)/g, 'toxic', '写具体动作或感受'],
+  [/(眼中|眼里)闪过一丝/g, 'toxic', '网文腔，换具体描写'],
+  [/嘴角(勾起|上扬|微微)/g, 'toxic', '网文腔，换具体描写'],
+  [/扮演着?(至关重要|举足轻重|不可或缺)的角色/g, 'toxic', '直说它做了什么'],
+  [/(起着|发挥着?)(至关重要|关键|重要)的?作用/g, 'toxic', '直说具体影响'],
+  // ---- 公式化结尾 / 升华 ----
+  [/未来已来/g, 'end', '删，或写具体的下一步'],
+  [/让我们?拭目以待/g, 'end', '删，或给出自己的判断'],
+  [/相信在不久的将来/g, 'end', '写具体时间或直接删'],
+  [/(必将|终将)[^。！？\n]{2,16}/g, 'end', '少断言，改成你的观察'],
+  [/写在最后/g, 'end', '直接说事，不用仪式感小标题'],
+  [/(综上所述|总而言之|总的来说|总之|整体而言|综上)/g, 'end', '删掉，直接给结论'],
+  // ---- 模糊归因 ----
+  [/(研究|数据|报告|调查)(表明|显示|指出)/g, 'fake', '给出处，或改成自己的观察'],
+  [/(专家|学者|业内人士)(认为|指出|表示)/g, 'fake', '写具体是谁说的'],
+  [/(有观点|普遍|一般)认为/g, 'fake', '谁认为？写清楚或删掉'],
+  [/众所周知/g, 'fake', '既然众所周知就不用说'],
+  [/毋庸置疑|不言而喻|无疑是/g, 'fake', '删掉，让论据自己说话'],
+  // ---- AI 高频词 ----
+  [/赋能/g, 'cliche', '换成「帮助」「让…能」'],
+  [/抓手/g, 'cliche', '换成「办法」「切入点」'],
+  [/闭环/g, 'cliche', '说清楚流程怎么走完'],
+  [/颗粒度/g, 'cliche', '换成「细节程度」'],
+  [/底层逻辑/g, 'cliche', '换成「根本原因」「原理」'],
+  [/方法论/g, 'cliche', '换成「方法」「做法」'],
+  [/双刃剑/g, 'cliche', '直接写好处和坏处'],
+  [/新纪元|里程碑式?/g, 'cliche', '降调，写具体变化'],
+  [/日新月异|蓬勃发展|方兴未艾/g, 'cliche', '给具体的例子或数据'],
+  [/深远的?影响/g, 'cliche', '写影响了什么、怎么影响'],
+  [/(重塑|颠覆)了?[^。！？\n]{0,10}(行业|格局|认知)/g, 'cliche', '写具体改变了什么'],
+  [/深度(剖析|解析|解读)|深入(探讨|剖析)/g, 'cliche', '直接开始分析就行'],
+  [/(全面|显著|大幅)(提升|提高|改善)/g, 'cliche', '给数字或具体对比'],
+  [/极大地?[^。！？\n]{0,8}(提升|提高|促进|改善)/g, 'cliche', '给数字或具体对比'],
+  [/致力于|旨在/g, 'cliche', '换成「想」「打算」「在做」'],
+  [/涵盖了?/g, 'cliche', '换成「包括」「有」'],
+  [/堪称|可谓/g, 'cliche', '删掉或直接下判断'],
+  [/值得(注意|一提)的是/g, 'cliche', '删掉，重要就直接说'],
+  [/需要指出的是/g, 'cliche', '删掉，直接指出'],
+  [/不难发现|由此可见/g, 'cliche', '删掉，直接给结论'],
+  [/究其原因/g, 'cliche', '换成「为什么？因为」'],
+  [/(揭秘|解锁|开启)[^。！？\n]{0,10}(之旅|旅程|篇章|大门)?/g, 'cliche', '标题党腔，直接说内容'],
+  [/画上[^。！？\n]{0,6}句号/g, 'cliche', '直接写结束了'],
+  [/(彰显|凸显)了?/g, 'cliche', '换成「显出」「说明」'],
+  [/赋予了?/g, 'cliche', '换成「给」「让…有」'],
+  [/(纵观|放眼)[^。！？\n]{0,10}/g, 'cliche', '删掉这类俯瞰视角开头'],
+  [/在某种程度上|一定程度上/g, 'cliche', '要么肯定要么删'],
+  [/(全新的?|前所未有的?)(高度|体验|视角|篇章)/g, 'cliche', '写具体新在哪'],
+  // ---- 机械连接词（句首才算） ----
+  [/(^|[。！？\n]\s*)(此外|然而|因此|与此同时|换言之|进一步地|一方面|另一方面)[，,]/gm, 'conn', '删掉或用内容自然衔接', 2],
+  [/(^|[。！？\n]\s*)(首先|其次|再次|最后)[，,]/gm, 'conn', '试试不编号也能讲清楚', 2],
+  // ---- 标点痕迹 ----
+  [/——/g, 'punct', '换成逗号或句号'],
+  [/[“”]/g, 'punct', '装饰性引号，可去掉'],
+];
+
+/* ================= 检测 ================= */
+function detect(text) {
+  const hits = [];
+  for (const rule of RULES) {
+    const [re, cat, sugg, group] = rule;
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text))) {
+      let start = m.index, str = m[0];
+      if (group) { // 只标注指定分组（跳过句首定位符）
+        start = m.index + m[1].length;
+        str = m[group];
+      }
+      if (!str) continue;
+      hits.push({ start, end: start + str.length, str, cat, sugg });
+      if (m.index === re.lastIndex) re.lastIndex++;
+    }
+  }
+  // 排序去重叠：先按起点，重叠时保留权重高的
+  hits.sort((a, b) => a.start - b.start || (CATS[b.cat].w - CATS[a.cat].w));
+  const clean = [];
+  let lastEnd = -1;
+  for (const h of hits) {
+    if (h.start >= lastEnd) { clean.push(h); lastEnd = h.end; }
+  }
+  return clean;
+}
+
+function scoreOf(hits, chars) {
+  if (!chars) return 0;
+  const weight = hits.reduce((s, h) => s + CATS[h.cat].w, 0);
+  // 每千字加权命中 → 0-100
+  const density = weight / chars * 1000;
+  return Math.min(100, Math.round(density * 2.6));
+}
+
+function verdictOf(score) {
+  if (score < 15) return ['基本是人话 ✅', '#059669', 'AI 痕迹很少，保持这个手感。'];
+  if (score < 40) return ['轻度 AI 味', '#d97706', '有一些高频词和套话，按建议替换几处就干净了。'];
+  if (score < 70) return ['中度 AI 味', '#ea580c', '套话句式和连接词偏多，建议逐条处理红色和橙色标注。'];
+  return ['重度 AI 味 ⚠️', '#dc2626', '一眼 AI。建议先删套话句式和公式化结尾，再把高频词换成大白话。'];
+}
+
+/* ================= 渲染 ================= */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function run() {
+  const text = $('#ta').value;
+  const chars = text.replace(/\s/g, '').length;
+  const hits = detect(text);
+  const score = scoreOf(hits, chars);
+
+  // 高亮正文
+  let html = '', pos = 0;
+  for (const h of hits) {
+    html += esc(text.slice(pos, h.start));
+    const c = CATS[h.cat];
+    html += `<mark style="background:${c.bg};box-shadow:inset 0 -2px 0 ${c.color};" title="${c.name}：${esc(h.sugg)}">${esc(h.str)}</mark>`;
+    pos = h.end;
+  }
+  html += esc(text.slice(pos));
+  $('#result').innerHTML = html;
+
+  // 评分环
+  const [label, color, advice] = verdictOf(score);
+  $('#score').textContent = chars ? score : '–';
+  $('#verdict').textContent = chars ? label : '等待检测';
+  $('#verdict').style.color = chars ? color : '';
+  $('#advice').textContent = advice;
+  const arc = $('#arc');
+  arc.style.stroke = color;
+  arc.style.strokeDashoffset = 263.9 * (1 - (chars ? score : 0) / 100);
+  arc.style.transition = 'stroke-dashoffset .6s ease, stroke .3s';
+
+  // 统计
+  $('#st-chars').textContent = chars;
+  $('#st-hits').textContent = hits.length;
+  $('#st-density').textContent = chars ? (hits.length / chars * 1000).toFixed(1) : 0;
+
+  // 图例（只显示有命中的类别 + 数量）
+  const byCat = {};
+  hits.forEach(h => byCat[h.cat] = (byCat[h.cat] || 0) + 1);
+  $('#legend').innerHTML = Object.keys(CATS).map(k => byCat[k]
+    ? `<span class="lg"><i style="background:${CATS[k].color}"></i>${CATS[k].name} × ${byCat[k]}</span>` : '').join('');
+
+  // 命中明细（同词合并）
+  const merged = {};
+  hits.forEach(h => {
+    const key = h.cat + '|' + h.str;
+    if (!merged[key]) merged[key] = { ...h, count: 0 };
+    merged[key].count++;
+  });
+  const rows = Object.values(merged).sort((a, b) => CATS[b.cat].w - CATS[a.cat].w || b.count - a.count);
+  $('#hits').innerHTML = rows.length
+    ? rows.map(h => `<div class="hit-row">
+        <span class="hit-word" style="color:${CATS[h.cat].color}">${esc(h.str)}${h.count > 1 ? ' ×' + h.count : ''}</span>
+        <span class="hit-cat">${CATS[h.cat].name}</span>
+        <span class="hit-sugg">→ <em>${esc(h.sugg)}</em></span>
+      </div>`).join('')
+    : (chars ? '<div class="empty-tip">没有命中任何规则，这段文字很有人味 🎉</div>' : '');
+}
+
+$('#go').onclick = run;
+let timer;
+$('#ta').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 400); });
+</script>
+</body>
+</html>
