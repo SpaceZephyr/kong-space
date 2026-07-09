@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="空格开源的 Agent Skill 项目合集：设计、产品、阅读和内容创作工作流。">
+  <title>Skill · 空格的键盘</title>
+  <style>
+    :root {
+      --bg: #fffdf8;
+      --text: #222;
+      --muted: #666;
+      --light: #888;
+      --line: #e8e2d6;
+      --link: #1756a9;
+      --link-hover: #0b3a75;
+      --card-bg: #fffaf0;
+      --card-border: #e8e2d6;
+      --chip-bg: #f5efe4;
+      --button-bg: #fff7ea;
+      --button-text: #4d463b;
+      --button-border: #ded4c3;
+      --max: 860px;
+      color-scheme: light;
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #11100d;
+      --text: #e9e0d1;
+      --muted: #b3a996;
+      --light: #8f8678;
+      --line: #312c24;
+      --link: #8db8ff;
+      --link-hover: #c4d9ff;
+      --card-bg: #17140f;
+      --card-border: #312c24;
+      --chip-bg: #211d18;
+      --button-bg: #1b1813;
+      --button-text: #dccfbb;
+      --button-border: #3b3429;
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: ui-serif, "Times New Roman", "Noto Serif CJK SC", "Songti SC", "STSong", serif;
+      font-size: 18px;
+      line-height: 1.78;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    .site {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 32px 22px 86px;
+    }
+
+    header {
+      margin-bottom: 54px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      margin: 0;
+      color: var(--text);
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+      text-decoration: none;
+    }
+
+    .theme-toggle {
+      flex: none;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--button-border);
+      border-radius: 999px;
+      color: var(--button-text);
+      background: var(--button-bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: var(--muted);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 15px;
+    }
+
+    nav a,
+    a {
+      color: var(--link);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    a:hover,
+    nav a:hover {
+      color: var(--link-hover);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin-bottom: 18px;
+      font-size: 32px;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-top: 48px;
+      margin-bottom: 22px;
+      padding-top: 38px;
+      border-top: 1px solid var(--line);
+      font-size: 23px;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 20px;
+    }
+
+    p {
+      margin: 0 0 18px;
+    }
+
+    .lead {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .note {
+      color: var(--light);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+
+    .repo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .repo-card {
+      padding: 20px 20px 18px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: var(--card-bg);
+    }
+
+    .repo-card.featured {
+      grid-column: 1 / -1;
+    }
+
+    .repo-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .repo-name {
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 19px;
+      line-height: 1.25;
+    }
+
+    .repo-name a {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .repo-name a:hover {
+      color: var(--link);
+    }
+
+    .stars {
+      flex: none;
+      color: var(--muted);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .metrics li {
+      padding: 4px 9px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--chip-bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .repo-card p {
+      color: var(--muted);
+      font-size: 16.5px;
+      line-height: 1.7;
+    }
+
+    .flow {
+      margin: 26px 0 0;
+      padding: 18px 20px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .flow strong {
+      color: var(--text);
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 26px;
+      border-top: 1px solid var(--line);
+      color: var(--light);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+
+    @media (max-width: 760px) {
+      .repo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        font-size: 16.5px;
+        line-height: 1.86;
+      }
+
+      .site {
+        padding: 30px 24px 76px;
+      }
+
+      header {
+        margin-bottom: 48px;
+      }
+
+      .header-top {
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .title {
+        font-size: 25px;
+      }
+
+      .theme-toggle {
+        height: 32px;
+        padding: 0 11px;
+      }
+
+      nav {
+        gap: 8px 13px;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      h1 {
+        font-size: 26px;
+        line-height: 1.42;
+      }
+
+      h2 {
+        margin-top: 46px;
+        margin-bottom: 20px;
+        padding-top: 34px;
+        font-size: 21px;
+      }
+
+      .lead {
+        font-size: 17px;
+      }
+
+      .repo-card {
+        padding: 18px 18px 16px;
+      }
+
+      .repo-head {
+        display: block;
+      }
+
+      .stars {
+        display: block;
+        margin-top: 6px;
+      }
+
+      .repo-card p {
+        font-size: 16px;
+        line-height: 1.78;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="site">
+    <header>
+      <div class="header-top">
+        <a class="title" href="/">空格的键盘</a>
+        <button class="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button>
+      </div>
+      <nav aria-label="站内导航">
+        <a href="/">About</a>
+        <a href="#featured">Featured</a>
+        <a href="#buddy">Buddy</a>
+        <a href="#all">All Skills</a>
+      </nav>
+    </header>
+
+    <article>
+      <h1>我开源的一些 Agent Skill</h1>
+      <p class="lead">这些 Skill 来自我真实的产品、内容和 AI 工作流。它们有些是独立工具，有些可以串起来用：先读资料，再判断选题热度，最后把内容做成图片、排版、海报或演示文稿。</p>
+      <p class="note">Star 数为 2026-07-09 查询 GitHub 页面时的公开数据。</p>
+
+      <section id="featured">
+        <h2>Featured</h2>
+        <div class="repo-grid">
+          <div class="repo-card featured">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/space-multi-design-ppt" target="_blank" rel="noreferrer">space-multi-design-ppt</a></h3>
+              <span class="stars">★ 20</span>
+            </div>
+            <ul class="metrics">
+              <li>1 个核心 Skill</li>
+              <li>62 种设计风格</li>
+              <li>HTML / PPTX / PDF</li>
+            </ul>
+            <p>一套融合 62 种设计风格的 PPT 制作 Skill。它一次性产出 HTML、PPTX、PDF 三种格式的文章演示稿，包含 Apple、Stripe、Airbnb、Claude 等品牌设计系统。我已经用了有一段时间，稳定好用，发给群友也备受好评，所以整理出来分享给大家。</p>
+          </div>
+
+          <div class="repo-card featured">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/pm-skills" target="_blank" rel="noreferrer">pm-skills</a></h3>
+              <span class="stars">★ 779</span>
+            </div>
+            <ul class="metrics">
+              <li>21 个 Skill</li>
+              <li>7 个专家团</li>
+              <li>pm-master 总控</li>
+            </ul>
+            <p>这是我三个月前做的 PM-Skills 升级版，从 13 个扩充到 21 个，新增 7 个专家团。它把 PRD、评审、排序、路线图、数据分析、实验、埋点、调研、竞品、复盘、原型这些高频工作，做成可复用的 AI 工作流；也把产品专家和经典方法论蒸馏成一支能随时开会的私人顾问团。</p>
+            <p>使用上也很简单：因为有一个全局总控 Skill `pm-master`，只要你问产品相关的问题，它就会调用对应的专家或流程来执行任务、提供建议。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buddy">
+        <h2>Buddy 系列</h2>
+        <div class="repo-grid">
+          <div class="repo-card">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/design-buddy" target="_blank" rel="noreferrer">design-buddy</a></h3>
+              <span class="stars">★ 107</span>
+            </div>
+            <ul class="metrics">
+              <li>19 个 Skill</li>
+              <li>设计助手</li>
+            </ul>
+            <p>主要处理视觉、排版、品牌、配图、图表、海报、PPT、逻辑图这些设计类任务。</p>
+          </div>
+
+          <div class="repo-card">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/read-buddy" target="_blank" rel="noreferrer">read-buddy</a></h3>
+              <span class="stars">★ 51</span>
+            </div>
+            <ul class="metrics">
+              <li>16 个 Skill</li>
+              <li>阅读助手</li>
+            </ul>
+            <p>主要处理网页、RSS、YouTube、播客、小宇宙、OCR、X / Twitter、飞书文档这些信息读取和消化任务。</p>
+          </div>
+
+          <div class="repo-card">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/creator-buddy" target="_blank" rel="noreferrer">creator-buddy</a></h3>
+              <span class="stars">★ 63</span>
+            </div>
+            <ul class="metrics">
+              <li>5 个 Skill</li>
+              <li>自媒体运营助手</li>
+            </ul>
+            <p>一个总控 Skill 加 4 个分支 Skill，主要处理小红书、公众号、B 站、抖音相关的热点搜索、爆款分析和内容运营。</p>
+          </div>
+        </div>
+
+        <div class="flow">
+          <p><strong>一个典型串联方式：</strong>read-buddy 先读网页、播客、YouTube，把原始信息整理成文稿和摘要；creator-buddy 再判断选题在小红书、公众号、B 站有没有热度，哪些标题和内容形式正在起量；最后 design-buddy 把文章变成封面图、配图、海报、公众号排版或演示文稿。</p>
+        </div>
+      </section>
+
+      <section id="all">
+        <h2>All Skills</h2>
+        <div class="repo-grid">
+          <div class="repo-card featured">
+            <div class="repo-head">
+              <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/myskill" target="_blank" rel="noreferrer">myskill</a></h3>
+              <span class="stars">★ 331</span>
+            </div>
+            <ul class="metrics">
+              <li>Skill 总索引</li>
+              <li>持续整理中</li>
+            </ul>
+            <p>这是我开放出来的 Skill 总入口。里面会继续整理我在写作、产品、设计、阅读、自动化和内容运营里沉淀出来的工作流。</p>
+          </div>
+        </div>
+      </section>
+    </article>
+
+    <footer>
+      © 空格的键盘 · Skills are context you can reuse.
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var toggle = document.querySelector(".theme-toggle");
+      var storageKey = "kongge-space-theme";
+      var savedTheme = localStorage.getItem(storageKey);
+      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+      function resolveTheme() {
+        return savedTheme || (prefersDark.matches ? "dark" : "light");
+      }
+
+      function applyTheme(theme) {
+        root.dataset.theme = theme;
+        toggle.textContent = theme === "dark" ? "浅色" : "深色";
+        toggle.setAttribute("aria-pressed", String(theme === "dark"));
+      }
+
+      applyTheme(resolveTheme());
+
+      toggle.addEventListener("click", function () {
+        var nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+        savedTheme = nextTheme;
+        localStorage.setItem(storageKey, nextTheme);
+        applyTheme(nextTheme);
+      });
+
+      prefersDark.addEventListener("change", function () {
+        if (!localStorage.getItem(storageKey)) {
+          applyTheme(resolveTheme());
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

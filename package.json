@@ -4,7 +4,7 @@
   "description": "Personal about page for kongge.space",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && cp index.html dist/index.html",
+    "build": "rm -rf dist && mkdir -p dist/skill && cp index.html dist/index.html && cp skill/index.html dist/skill/index.html",
     "deploy": "npm run build && wrangler pages deploy dist --project-name kong-space"
   },
   "keywords": [],
