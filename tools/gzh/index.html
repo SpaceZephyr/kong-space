@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公众号排版 · Markdown 转公众号</title>
+<style>
+  :root {
+    --canvas: #ffffff; --canvas-soft: #f6f5f4; --ink: #000; --ink-2: #31302e;
+    --ink-muted: #615d59; --ink-faint: #a39e98; --hairline: #e6e6e6;
+    --primary: #0075de; --primary-active: #005bab;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; }
+  .app { max-width: 1280px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  header.top h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--ink); }
+  header.top p { color: var(--ink-muted); font-size: 14px; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin: 20px 0 16px; flex-wrap: wrap; }
+  .theme-chip {
+    display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 9999px;
+    border: 1px solid var(--hairline); background: var(--canvas); font-size: 14px; font-weight: 500;
+    cursor: pointer; color: var(--ink-2); font-family: var(--sans);
+  }
+  .theme-chip .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .theme-chip.active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .btn { padding: 9px 20px; border-radius: 9999px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; font-family: var(--sans); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-active); }
+  .btn-secondary { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
+  .btn-secondary:hover { background: var(--canvas-soft); }
+  .spacer { flex: 1; }
+  .status { font-size: 13px; color: var(--ink-muted); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .pane { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+  .pane-head { padding: 10px 16px; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--ink-faint); border-bottom: 1px solid var(--hairline); text-transform: uppercase; }
+  textarea#md {
+    width: 100%; min-height: 72vh; border: none; outline: none; resize: vertical;
+    padding: 18px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px; line-height: 1.7; color: var(--ink-2); background: var(--canvas);
+  }
+  #preview-wrap { padding: 20px; background: #f0efed; max-height: 78vh; overflow-y: auto; }
+  #phone { max-width: 420px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.08); padding: 20px 6px; }
+  .hint { font-size: 13px; color: var(--ink-faint); margin-top: 10px; line-height: 1.6; }
+  .toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 22px; border-radius: 9999px;
+    font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>公众号排版</h1>
+    <p>Markdown 一键转公众号富文本 · 粘贴进编辑器样式不丢</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="theme-chip active" data-theme="moline"><span class="dot" style="background:#52525B"></span>墨线</button>
+    <button class="theme-chip" data-theme="qingye"><span class="dot" style="background:#059669"></span>青野</button>
+    <button class="theme-chip" data-theme="nuanzhi"><span class="dot" style="background:#C2703D"></span>暖纸</button>
+    <button class="theme-chip" data-theme="liubai"><span class="dot" style="background:#0066cc"></span>留白</button>
+    <button class="theme-chip" data-theme="zhijian"><span class="dot" style="background:#191919"></span>纸间</button>
+    <button class="theme-chip" data-theme="zhiqiong"><span class="dot" style="background:#635bff"></span>紫穹</button>
+    <button class="theme-chip" data-theme="shanhu"><span class="dot" style="background:#FF385C"></span>珊瑚</button>
+    <button class="theme-chip" data-theme="yepu"><span class="dot" style="background:#1DB954"></span>夜谱</button>
+    <button class="theme-chip" data-theme="shicai"><span class="dot" style="background:#A259FF"></span>拾彩</button>
+    <button class="theme-chip" data-theme="chicheng"><span class="dot" style="background:#DC2626"></span>赤诚</button>
+    <span class="spacer"></span>
+    <span class="status" id="status"></span>
+    <button class="btn btn-secondary" id="copy-html">复制 HTML</button>
+    <button class="btn btn-primary" id="copy-rich">复制到公众号</button>
+  </div>
+
+  <div class="cols">
+    <div class="pane">
+      <div class="pane-head">Markdown</div>
+      <textarea id="md" spellcheck="false"></textarea>
+    </div>
+    <div class="pane">
+      <div class="pane-head">预览（点右上按钮复制后，直接粘贴进公众号编辑器）</div>
+      <div id="preview-wrap"><div id="phone"><section id="out"></section></div></div>
+    </div>
+  </div>
+  <p class="hint">语法：<code>## 章节</code>（自动编号 01/02…）· <code>### 子标题</code> · 开头 <code>&gt; 引言</code> 成为引言卡 · <code>**加粗**</code> <code>==高亮==</code> <code>`代码`</code> · <code>- 列表</code> <code>1. 列表</code> · <code>---</code> 分割线 · <code>![说明](图片URL)</code></p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 主题 token ================= */
+const FONT = "-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif";
+const SERIF = "Georgia,'Songti SC','Noto Serif SC',serif";
+
+const THEMES = {
+  moline: { // 墨线：灰阶 + 细线 + 水印大编号
+    name: '墨线',
+    body: '#52525B', title: '#27272A', muted: '#A1A1AA', line: '#E4E4E7',
+    accent: '#27272A', soft: '#FAFAFA', tagBg: '#F4F4F5',
+    headFont: FONT, quoteStyle: 'bar', numStyle: 'watermark',
+    underline: '2px solid #52525B',
+  },
+  qingye: { // 青野：青绿点缀 + 圆角轻卡片
+    name: '青野',
+    body: '#374151', title: '#111827', muted: '#9CA3AF', line: '#E5E7EB',
+    accent: '#059669', soft: '#ECFDF5', tagBg: '#D1FAE5',
+    headFont: FONT, quoteStyle: 'card', numStyle: 'badge',
+    underline: '2px solid #A7F3D0',
+  },
+  nuanzhi: { // 暖纸：米白暖调 + 衬线标题（Claude）
+    name: '暖纸',
+    body: '#3d3d3a', title: '#141413', muted: '#8e8b82', line: '#e6dfd8',
+    accent: '#C2703D', soft: '#f5f0e8', tagBg: '#efe6d9',
+    headFont: SERIF, quoteStyle: 'warm', numStyle: 'plain',
+    underline: '2px solid #C2703D',
+  },
+  liubai: { // 留白：极致克制 + 一点蓝（Apple）
+    name: '留白',
+    body: '#333336', title: '#1d1d1f', muted: '#86868b', line: '#e8e8ed',
+    accent: '#0066cc', soft: '#f5f5f7', tagBg: '#f5f5f7',
+    headFont: FONT, quoteStyle: 'card', numStyle: 'plain',
+    underline: '2px solid #0066cc',
+  },
+  zhijian: { // 纸间：黑白纸感 + 方框编号（Notion）
+    name: '纸间',
+    body: '#31302e', title: '#000000', muted: '#a39e98', line: '#e6e6e6',
+    accent: '#191919', soft: '#f6f5f4', tagBg: '#f1efee',
+    headFont: FONT, quoteStyle: 'bar', numStyle: 'chip',
+    underline: '2px solid #191919',
+  },
+  zhiqiong: { // 紫穹：深海军蓝字 + 电紫点缀（Stripe）
+    name: '紫穹',
+    body: '#425466', title: '#0a2540', muted: '#8898aa', line: '#e6ebf1',
+    accent: '#635bff', soft: '#f6f5ff', tagBg: '#e9e7ff',
+    headFont: FONT, quoteStyle: 'card', numStyle: 'chip',
+    underline: '2px solid #c7c3ff',
+  },
+  shanhu: { // 珊瑚：珊瑚红徽标 + 圆角暖卡（Airbnb）
+    name: '珊瑚',
+    body: '#484848', title: '#222222', muted: '#9ca3af', line: '#ebebeb',
+    accent: '#FF385C', soft: '#fff1f2', tagBg: '#ffe4e6',
+    headFont: FONT, quoteStyle: 'card', numStyle: 'badge',
+    underline: '2px solid #fecdd3',
+  },
+  yepu: { // 夜谱：深色底 + 荧光绿（Spotify）
+    name: '夜谱',
+    bg: '#191414',
+    body: '#d7d5d3', title: '#ffffff', muted: '#8a8785', line: '#3a3634',
+    accent: '#1DB954', soft: '#242020', tagBg: '#2e2a27',
+    headFont: FONT, quoteStyle: 'bar', numStyle: 'watermark',
+    underline: '2px solid #1DB954',
+  },
+  shicai: { // 拾彩：章节编号多彩轮转（Figma）
+    name: '拾彩',
+    body: '#374151', title: '#111827', muted: '#9ca3af', line: '#e5e7eb',
+    accent: '#A259FF', soft: '#f9fafb', tagBg: '#f3f4f6',
+    palette: ['#F24E1E', '#A259FF', '#1ABCFE', '#0ACF83', '#FF7262'],
+    headFont: FONT, quoteStyle: 'card', numStyle: 'badge',
+    underline: '2px solid #ddd6fe',
+  },
+  chicheng: { // 赤诚：经典红白编辑风（红白色系再简化）
+    name: '赤诚',
+    body: '#3f3f46', title: '#18181b', muted: '#a1a1aa', line: '#e4e4e7',
+    accent: '#DC2626', soft: '#fef2f2', tagBg: '#fee2e2',
+    headFont: FONT, quoteStyle: 'bar', numStyle: 'plain',
+    underline: '2px solid #fecaca',
+  },
+};
+// 章节主题色（拾彩多彩轮转，其余固定 accent）
+function accentOf(t, num) { return t.palette ? t.palette[(num - 1) % t.palette.length] : t.accent; }
+
+/* ================= 行内解析 ================= */
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+// 行内标记 → 内联样式 span（全部 <span leaf=""> 包裹）
+function inline(s, t) {
+  let out = '';
+  // 分词：按标记切分
+  const re = /(\*\*[^*]+\*\*|==[^=]+==|`[^`]+`|\[[^\]]*\]\([^)]+\))/g;
+  let last = 0, m;
+  const plain = (txt) => txt ? `<span leaf="">${esc(txt)}</span>` : '';
+  while ((m = re.exec(s))) {
+    out += plain(s.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('**')) {
+      out += `<strong style="color:${t.accent === t.title ? t.title : t.accent};"><span leaf="">${esc(tok.slice(2, -2))}</span></strong>`;
+    } else if (tok.startsWith('==')) {
+      out += `<span style="background:${t.tagBg};color:${t.title};padding:2px 7px;border-radius:3px;font-weight:700;font-size:14px;"><span leaf="">${esc(tok.slice(2, -2))}</span></span>`;
+    } else if (tok.startsWith('`')) {
+      out += `<span style="background:${t.tagBg};color:${t.title};padding:2px 6px;border-radius:4px;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:14px;"><span leaf="">${esc(tok.slice(1, -1))}</span></span>`;
+    } else { // 链接：公众号会剥外链，转为主色文字 + 括注
+      const mm = tok.match(/\[([^\]]*)\]\(([^)]+)\)/);
+      out += `<span style="color:${t.accent};font-weight:600;"><span leaf="">${esc(mm[1] || mm[2])}</span></span>`;
+    }
+    last = m.index + tok.length;
+  }
+  out += plain(s.slice(last));
+  return out;
+}
+
+/* ================= 块级解析 ================= */
+// → [{type:'h2'|'h3'|'p'|'quote'|'ul'|'ol'|'img'|'hr'|'code', ...}]
+function parse(md) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trim = line.trim();
+    if (!trim) { i++; continue; }
+    if (/^```/.test(trim)) {
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i].trim())) buf.push(lines[i++]);
+      i++;
+      blocks.push({ type: 'code', lines: buf });
+      continue;
+    }
+    if (/^#\s+/.test(trim)) { blocks.push({ type: 'h1', text: trim.replace(/^#\s+/, '') }); i++; continue; }
+    if (/^##\s+/.test(trim)) { blocks.push({ type: 'h2', text: trim.replace(/^##\s+/, '') }); i++; continue; }
+    if (/^###+\s+/.test(trim)) { blocks.push({ type: 'h3', text: trim.replace(/^###+\s+/, '') }); i++; continue; }
+    if (/^(-{3,}|\*{3,})$/.test(trim)) { blocks.push({ type: 'hr' }); i++; continue; }
+    if (/^>\s?/.test(trim)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i].trim())) buf.push(lines[i++].trim().replace(/^>\s?/, ''));
+      blocks.push({ type: 'quote', text: buf.join(' ') });
+      continue;
+    }
+    if (/^[-*+]\s+/.test(trim)) {
+      const items = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i].trim())) items.push(lines[i++].trim().replace(/^[-*+]\s+/, ''));
+      blocks.push({ type: 'ul', items });
+      continue;
+    }
+    if (/^\d+[.、]\s+/.test(trim)) {
+      const items = [];
+      while (i < lines.length && /^\d+[.、]\s+/.test(lines[i].trim())) items.push(lines[i++].trim().replace(/^\d+[.、]\s+/, ''));
+      blocks.push({ type: 'ol', items });
+      continue;
+    }
+    const img = trim.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (img) { blocks.push({ type: 'img', alt: img[1], src: img[2] }); i++; continue; }
+    // 普通段落：连续非空行合并
+    const buf = [trim];
+    i++;
+    while (i < lines.length && lines[i].trim() && !/^(#|>|```|[-*+]\s|\d+[.、]\s|!\[|-{3,}|\*{3,})/.test(lines[i].trim())) buf.push(lines[i++].trim());
+    blocks.push({ type: 'p', text: buf.join('') });
+  }
+  return blocks;
+}
+
+/* ================= 组件渲染 ================= */
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function renderH2(text, num, t) {
+  const ac = accentOf(t, num);
+  if (t.numStyle === 'watermark') { // 超大水印编号 + 细线
+    return `<section style="margin:52px 10px 28px;">
+<section style="padding-bottom:18px;border-bottom:1px solid ${t.line};">
+<p style="font-size:44px;font-weight:900;color:${t.line};margin:0;line-height:1;letter-spacing:-2px;"><span leaf="">${pad2(num)}</span></p>
+<h3 style="font-size:19px;font-weight:800;color:${t.title};margin:-4px 0 0;letter-spacing:0.5px;line-height:1.4;font-family:${t.headFont};"><span leaf="">${esc(text)}</span></h3>
+</section></section>`;
+  }
+  if (t.numStyle === 'badge') { // 圆角编号徽标 + 标题
+    return `<section style="margin:48px 10px 24px;">
+<p style="margin:0 0 10px;"><span style="display:inline-block;background:${ac};color:#ffffff;font-size:12px;font-weight:700;padding:3px 12px;border-radius:9999px;letter-spacing:1px;"><span leaf="">${pad2(num)}</span></span></p>
+<h3 style="font-size:19px;font-weight:800;color:${t.title};margin:0;letter-spacing:0.5px;line-height:1.4;font-family:${t.headFont};"><span leaf="">${esc(text)}</span></h3>
+</section>`;
+  }
+  if (t.numStyle === 'chip') { // 方框描边编号 + 标题
+    return `<section style="margin:48px 10px 24px;">
+<p style="margin:0 0 10px;"><span style="display:inline-block;border:1.5px solid ${ac};color:${ac};font-size:12px;font-weight:700;padding:2px 9px;letter-spacing:1.5px;"><span leaf="">${pad2(num)}</span></span></p>
+<h3 style="font-size:19px;font-weight:800;color:${t.title};margin:0;letter-spacing:0.5px;line-height:1.4;font-family:${t.headFont};"><span leaf="">${esc(text)}</span></h3>
+</section>`;
+  }
+  // plain：小编号 + 标题 + 短横线
+  return `<section style="margin:52px 10px 26px;">
+<p style="font-size:13px;color:${ac};font-weight:600;letter-spacing:3px;margin:0 0 8px;"><span leaf="">${pad2(num)}</span></p>
+<h3 style="font-size:20px;font-weight:${t.headFont === SERIF ? 600 : 800};color:${t.title};margin:0 0 12px;letter-spacing:0.5px;line-height:1.45;font-family:${t.headFont};"><span leaf="">${esc(text)}</span></h3>
+<section style="width:36px;height:3px;background:${ac};"><span leaf=""><br></span></section>
+</section>`;
+}
+
+function renderH3(text, t) {
+  return `<p style="font-size:15px;font-weight:800;color:${t.title};margin:26px 10px 12px;padding-left:12px;border-left:3px solid ${t.accent};line-height:1.4;font-family:${t.headFont};"><span leaf="">${esc(text)}</span></p>`;
+}
+
+function renderP(text, t) {
+  return `<p style="margin:0 10px 22px;font-size:15px;line-height:1.8;text-align:justify;color:${t.body};letter-spacing:0.3px;">${inline(text, t)}</p>`;
+}
+
+function renderIntro(text, t) { // 开头引言卡
+  if (t.quoteStyle === 'bar') { // 墨线：上下细线
+    return `<section style="margin:10px 10px 36px;padding:26px 20px 20px;border-top:1px solid ${t.line};border-bottom:1px solid ${t.line};">
+<p style="font-size:11px;color:${t.muted};letter-spacing:2px;margin:0 0 14px;"><span leaf="">QUOTE</span></p>
+<p style="font-size:17px;font-weight:700;color:${t.title};margin:0;line-height:1.75;letter-spacing:0.5px;">${inline(text, t)}</p>
+</section>`;
+  }
+  if (t.quoteStyle === 'card') { // 青野：浅绿圆角卡
+    return `<section style="margin:10px 10px 36px;padding:22px 22px;background:${t.soft};border-radius:12px;">
+<p style="font-size:11px;color:${t.accent};letter-spacing:2px;margin:0 0 12px;font-weight:600;"><span leaf="">引言</span></p>
+<p style="font-size:16px;font-weight:700;color:${t.title};margin:0;line-height:1.75;">${inline(text, t)}</p>
+</section>`;
+  }
+  // 暖纸：米色卡 + 衬线
+  return `<section style="margin:10px 10px 36px;padding:24px 24px;background:${t.soft};border-left:4px solid ${t.accent};">
+<p style="font-size:16px;font-weight:600;color:${t.title};margin:0;line-height:1.9;font-family:${t.headFont};">${inline(text, t)}</p>
+</section>`;
+}
+
+function renderQuote(text, t) {
+  if (t.quoteStyle === 'bar') {
+    return `<section style="border-left:3px solid ${t.accent};padding:14px 0 14px 22px;margin:0 10px 26px;">
+<p style="font-size:15px;font-weight:700;color:${t.title};margin:0;line-height:1.75;">${inline(text, t)}</p>
+</section>`;
+  }
+  if (t.quoteStyle === 'card') {
+    return `<section style="background:${t.soft};border-radius:10px;padding:16px 20px;margin:0 10px 26px;">
+<p style="font-size:15px;color:${t.title};font-weight:600;margin:0;line-height:1.8;">${inline(text, t)}</p>
+</section>`;
+  }
+  return `<section style="background:${t.soft};border-left:4px solid ${t.accent};padding:16px 22px;margin:0 10px 26px;">
+<p style="font-size:15px;color:${t.title};margin:0;line-height:1.85;font-family:${t.headFont};">${inline(text, t)}</p>
+</section>`;
+}
+
+function renderUl(items, t) {
+  return `<section style="margin:0 10px 22px;">` + items.map(it =>
+    `<section style="display:flex;align-items:flex-start;margin-bottom:10px;">
+<span style="display:inline-block;width:6px;height:6px;background:${t.accent};border-radius:50%;margin:11px 12px 0 2px;flex-shrink:0;"><span leaf=""><br></span></span>
+<p style="font-size:15px;color:${t.body};margin:0;line-height:1.8;flex:1;text-align:justify;">${inline(it, t)}</p>
+</section>`).join('') + `</section>`;
+}
+
+function renderOl(items, t) {
+  return `<section style="margin:0 10px 22px;">` + items.map((it, idx) =>
+    `<section style="display:flex;align-items:flex-start;margin-bottom:12px;">
+<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:${t.accent};color:#ffffff;font-size:12px;font-weight:700;border-radius:50%;flex-shrink:0;margin:3px 10px 0 0;"><span leaf="">${idx + 1}</span></span>
+<p style="font-size:15px;color:${t.body};margin:0;line-height:1.8;flex:1;text-align:justify;">${inline(it, t)}</p>
+</section>`).join('') + `</section>`;
+}
+
+function renderImg(alt, src, t) {
+  let html = `<section style="margin:0 10px ${alt ? '8px' : '26px'};"><span leaf=""><img src="${esc(src)}" style="max-width:100%;height:auto;display:block;margin:0 auto;border-radius:${t.quoteStyle === 'card' ? '10px' : '0'};"></span></section>`;
+  if (alt) html += `<p style="font-size:12px;color:${t.muted};text-align:center;margin:0 10px 26px;letter-spacing:0.5px;"><span leaf="">${esc(alt)}</span></p>`;
+  return html;
+}
+
+function renderHr(t) {
+  return `<section style="margin:0 10px 26px;"><section style="height:1px;background:${t.line};"><span leaf=""><br></span></section></section>`;
+}
+
+function renderCode(codeLines, t) {
+  const rows = codeLines.map(l =>
+    `<p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.7;color:#D4D4D8;"><span leaf="">${esc(l).replace(/ /g, '　') || '<br>'}</span></p>`).join('');
+  return `<section style="background:#18181B;border-left:3px solid ${t.accent};border-radius:6px;padding:16px 18px;margin:0 10px 26px;overflow-x:auto;">${rows}</section>`;
+}
+
+function renderEnd(t) {
+  return `<section style="margin:44px 10px 20px;"><section style="display:flex;align-items:center;justify-content:center;">
+<span style="height:1px;width:44px;background:${t.line};margin-right:14px;"><span leaf=""><br></span></span>
+<span style="font-size:10px;color:${t.muted};letter-spacing:4px;font-weight:500;"><span leaf="">END</span></span>
+<span style="height:1px;width:44px;background:${t.line};margin-left:14px;"><span leaf=""><br></span></span>
+</section></section>`;
+}
+
+/* ================= 装配 ================= */
+function render(md, themeKey) {
+  const t = THEMES[themeKey];
+  const blocks = parse(md);
+  let html = '';
+  let num = 0;
+  let intro = false;
+  blocks.forEach((b, idx) => {
+    switch (b.type) {
+      case 'h1': break; // 文章标题在公众号平台设置，忽略
+      case 'quote':
+        if (!intro && num === 0) { intro = true; html += renderIntro(b.text, t); }
+        else html += renderQuote(b.text, t);
+        break;
+      case 'h2': html += renderH2(b.text, ++num, t); break;
+      case 'h3': html += renderH3(b.text, t); break;
+      case 'p': html += renderP(b.text, t); break;
+      case 'ul': html += renderUl(b.items, t); break;
+      case 'ol': html += renderOl(b.items, t); break;
+      case 'img': html += renderImg(b.alt, b.src, t); break;
+      case 'hr': html += renderHr(t); break;
+      case 'code': html += renderCode(b.lines, t); break;
+    }
+  });
+  if (blocks.length) html += renderEnd(t);
+  const bg = t.bg || '#FFFFFF';
+  const pad = t.bg ? 'padding:20px 6px;' : '';
+  return `<section style="max-width:677px;margin:0 auto;background:${bg};${pad}font-family:${FONT};color:${t.body};line-height:1.8;letter-spacing:0.3px;">${html}</section>`;
+}
+
+/* ================= UI ================= */
+let theme = 'moline';
+const $ = (s) => document.querySelector(s);
+const DEFAULT_MD = `# 文章标题（发布时在公众号后台填写）
+
+> 好的排版不是装饰，是让读者更快抓住重点。
+
+这是开头引言之后的一段前言。支持 **加粗**、==高亮标签== 和 \`行内代码\`，粘贴到公众号编辑器后样式不会丢。
+
+## 第一个章节
+
+章节会自动编号。每个段落两端对齐，行高 1.8，符合公众号阅读习惯。
+
+### 一个子标题
+
+- 无序列表：圆点前缀
+- 支持 **行内标记**
+
+1. 有序列表：圆形编号徽标
+2. 第二项
+
+> 章节中的引用会渲染成引用块。
+
+\`\`\`
+echo "代码块：深色底，等宽字体"
+\`\`\`
+
+---
+
+## 第二个章节
+
+分割线、图片说明也都支持：
+
+![这是图片说明](https://mmbiz.qpic.cn/example.jpg)
+`;
+
+function refresh() {
+  $('#out').outerHTML = render($('#md').value, theme).replace('<section style="max-width:677px', '<section id="out" style="max-width:677px');
+}
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+document.querySelectorAll('.theme-chip').forEach(c => c.onclick = () => {
+  theme = c.dataset.theme;
+  document.querySelectorAll('.theme-chip').forEach(x => x.classList.toggle('active', x === c));
+  refresh();
+});
+
+let timer;
+$('#md').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(refresh, 200); });
+
+$('#copy-rich').onclick = async () => {
+  const node = $('#out');
+  try {
+    const blob = new Blob([node.outerHTML], { type: 'text/html' });
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html': blob,
+      'text/plain': new Blob([node.innerText], { type: 'text/plain' }),
+    })]);
+    toast('已复制，去公众号编辑器粘贴即可');
+  } catch (e) {
+    // 兜底：选区复制
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const sel = getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    toast('已复制（兼容模式），去公众号编辑器粘贴');
+  }
+};
+
+$('#copy-html').onclick = async () => {
+  await navigator.clipboard.writeText(render($('#md').value, theme));
+  toast('HTML 源码已复制');
+};
+
+$('#md').value = DEFAULT_MD;
+refresh();
+</script>
+</body>
+</html>

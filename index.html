@@ -135,6 +135,70 @@
       color: var(--link-hover);
     }
 
+    .tools-menu {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tools-trigger {
+      cursor: pointer;
+    }
+
+    .tools-panel {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      z-index: 20;
+      display: block;
+      width: 300px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10);
+    }
+
+    .tools-panel[hidden] {
+      display: none;
+    }
+
+    .tools-item {
+      display: block;
+      padding: 12px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .tools-item:hover {
+      background: var(--code-bg);
+    }
+
+    .tools-item + .tools-item {
+      margin-top: 2px;
+    }
+
+    .tools-name {
+      display: block;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .tools-desc {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .tools-date {
+      display: block;
+      margin-top: 5px;
+      color: var(--light);
+      font-size: 12px;
+    }
+
     h1,
     h2,
     h3,
@@ -362,6 +426,21 @@
         <a href="#about">About</a>
         <a href="#product">Product</a>
         <a href="/skill/">Skill</a>
+        <span class="tools-menu">
+          <a href="#" class="tools-trigger" aria-haspopup="true" aria-expanded="false">Tools ▾</a>
+          <span class="tools-panel" role="menu" hidden>
+            <a class="tools-item" href="/tools/xhs/" role="menuitem">
+              <span class="tools-name">公众号转小红书</span>
+              <span class="tools-desc">文章或链接自动排成 3:4 图文卡片，三种风格，批量下载</span>
+              <span class="tools-date">2026-07-09 上架</span>
+            </a>
+            <a class="tools-item" href="/tools/gzh/" role="menuitem">
+              <span class="tools-name">公众号排版</span>
+              <span class="tools-desc">Markdown 一键转公众号富文本，十种风格，粘贴不丢样式</span>
+              <span class="tools-date">2026-07-09 上架</span>
+            </a>
+          </span>
+        </span>
         <a href="#yearlog">YearLog</a>
         <a href="#content">Content</a>
         <a href="#talk">Talk to me</a>
@@ -535,6 +614,30 @@
         if (!localStorage.getItem(storageKey)) {
           applyTheme(resolveTheme());
         }
+      });
+    })();
+
+    (function () {
+      var trigger = document.querySelector(".tools-trigger");
+      var panel = document.querySelector(".tools-panel");
+      if (!trigger || !panel) return;
+
+      function setOpen(open) {
+        panel.hidden = !open;
+        trigger.setAttribute("aria-expanded", String(open));
+      }
+
+      trigger.addEventListener("click", function (e) {
+        e.preventDefault();
+        setOpen(panel.hidden);
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!panel.hidden && !e.target.closest(".tools-menu")) setOpen(false);
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") setOpen(false);
       });
     })();
   </script>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公众号 → 小红书图文</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  /* ===== 工具本身的 UI：Notion 风（暖色极简） ===== */
+  :root {
+    --canvas: #ffffff;
+    --canvas-soft: #f6f5f4;
+    --ink: #000000;
+    --ink-2: #31302e;
+    --ink-muted: #615d59;
+    --ink-faint: #a39e98;
+    --hairline: #e6e6e6;
+    --primary: #0075de;
+    --primary-active: #005bab;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+  .app { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+  header.top h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.625px; color: var(--ink); }
+  header.top p { color: var(--ink-muted); margin-top: 4px; font-size: 14px; }
+
+  .panel { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 12px; padding: 24px; margin-top: 24px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 6px 14px; border-radius: 8px; border: 1px solid transparent; background: transparent; font-size: 14px; font-weight: 500; color: var(--ink-muted); cursor: pointer; }
+  .tab.active { background: var(--canvas-soft); color: var(--ink); border-color: var(--hairline); }
+  textarea, input[type="text"] {
+    width: 100%; border: 1px solid var(--hairline); border-radius: 8px; padding: 12px;
+    font-family: var(--sans); font-size: 15px; line-height: 1.6; color: var(--ink-2);
+    background: var(--canvas); outline: none; resize: vertical;
+  }
+  textarea:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,117,222,.12); }
+  textarea { min-height: 220px; }
+  .hint { font-size: 13px; color: var(--ink-faint); margin-top: 8px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+  .theme-picker { display: flex; gap: 8px; }
+  .theme-chip {
+    display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 9999px;
+    border: 1px solid var(--hairline); background: var(--canvas); font-size: 14px; font-weight: 500; cursor: pointer; color: var(--ink-2);
+  }
+  .theme-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.08); }
+  .theme-chip.active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .btn {
+    padding: 10px 22px; border-radius: 9999px; border: none; cursor: pointer;
+    font-size: 15px; font-weight: 500; font-family: var(--sans);
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-active); }
+  .btn-secondary { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
+  .btn-secondary:hover { background: var(--canvas-soft); }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  .status { font-size: 14px; color: var(--ink-muted); }
+  .status.error { color: #c64545; }
+
+  /* ===== 结果区：平铺卡片 ===== */
+  .result-bar { display: flex; align-items: center; justify-content: space-between; margin: 32px 0 16px; }
+  .result-bar h2 { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.25px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+  .card-cell { position: relative; }
+  .card-viewport {
+    width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 10px;
+    border: 1px solid var(--hairline); background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .card-scale { transform-origin: top left; }
+  .cell-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .cell-actions span { font-size: 13px; color: var(--ink-faint); }
+  .dl-one {
+    font-size: 13px; font-weight: 500; color: var(--primary); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  }
+  .dl-one:hover { background: var(--canvas-soft); }
+
+  /* ===== 卡片本体（1080 × 1440，导出尺寸） ===== */
+  .xhs-card {
+    width: 1080px; height: 1440px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .xhs-body { flex: 1; overflow: hidden; }
+  .xhs-footer { display: flex; justify-content: space-between; align-items: center; }
+
+  /* --- 通用内容块 --- */
+  .xhs-card .blk-h { font-weight: 700; }
+  .xhs-card .blk-p { }
+  .xhs-card .blk-img { width: 100%; display: block; object-fit: cover; }
+  .xhs-card .blk-q { }
+
+  /* ================= Notion 主题 ================= */
+  .theme-notion { background: #ffffff; color: #31302e; font-family: var(--sans); padding: 96px 88px 72px; }
+  .theme-notion .xhs-footer { color: #a39e98; font-size: 26px; padding-top: 36px; border-top: 2px solid #e6e6e6; }
+  .theme-notion .blk-h { font-size: 52px; line-height: 1.25; letter-spacing: -1px; color: #000; margin: 40px 0 28px; }
+  .theme-notion .blk-h:first-child { margin-top: 0; }
+  .theme-notion .blk-p { font-size: 36px; line-height: 1.75; margin-bottom: 36px; }
+  .theme-notion .blk-q { font-size: 36px; line-height: 1.7; color: #615d59; border-left: 6px solid #000; padding-left: 32px; margin: 12px 0 36px; }
+  .theme-notion .blk-img { border-radius: 12px; margin-bottom: 36px; }
+  .theme-notion.cover { background: #f6f5f4; justify-content: center; }
+  .theme-notion.cover .cover-eyebrow { font-size: 28px; font-weight: 600; letter-spacing: 3px; color: #0075de; text-transform: uppercase; margin-bottom: 48px; }
+  .theme-notion.cover .cover-title { font-size: 88px; font-weight: 700; line-height: 1.15; letter-spacing: -2px; color: #000; }
+  .theme-notion.cover .cover-meta { margin-top: 64px; font-size: 32px; color: #615d59; }
+  .theme-notion.cover .cover-bar { width: 120px; height: 10px; background: #0075de; border-radius: 9999px; margin-top: 56px; }
+
+  /* ================= Apple 主题 ================= */
+  .theme-apple { background: #ffffff; color: #1d1d1f; font-family: "SF Pro Text", var(--sans); padding: 104px 92px 76px; }
+  .theme-apple .xhs-footer { color: #7a7a7a; font-size: 25px; padding-top: 36px; border-top: 2px solid #f0f0f0; }
+  .theme-apple .blk-h { font-size: 54px; font-weight: 600; line-height: 1.15; letter-spacing: -0.8px; color: #1d1d1f; margin: 44px 0 30px; }
+  .theme-apple .blk-h:first-child { margin-top: 0; }
+  .theme-apple .blk-p { font-size: 35px; font-weight: 400; line-height: 1.72; letter-spacing: -0.37px; margin-bottom: 38px; color: #333; }
+  .theme-apple .blk-q { font-size: 38px; font-weight: 300; line-height: 1.6; color: #1d1d1f; margin: 16px 0 40px; padding: 36px 40px; background: #f5f5f7; border-radius: 24px; }
+  .theme-apple .blk-img { border-radius: 24px; margin-bottom: 40px; }
+  .theme-apple.cover { background: #f5f5f7; justify-content: center; text-align: center; }
+  .theme-apple.cover .cover-eyebrow { font-size: 30px; font-weight: 600; color: #0066cc; margin-bottom: 44px; }
+  .theme-apple.cover .cover-title { font-family: "SF Pro Display", var(--sans); font-size: 92px; font-weight: 600; line-height: 1.1; letter-spacing: -1.5px; color: #1d1d1f; }
+  .theme-apple.cover .cover-meta { margin-top: 60px; font-size: 30px; color: #7a7a7a; }
+  .theme-apple.cover .cover-bar { display: none; }
+
+  /* ================= Claude 主题 ================= */
+  .theme-claude { background: #faf9f5; color: #3d3d3a; font-family: var(--sans); padding: 96px 88px 72px; }
+  .theme-claude .xhs-footer { color: #8e8b82; font-size: 26px; padding-top: 36px; border-top: 2px solid #e6dfd8; }
+  .theme-claude .blk-h { font-family: Georgia, "Songti SC", "Noto Serif SC", serif; font-size: 54px; font-weight: 500; line-height: 1.25; letter-spacing: -0.5px; color: #141413; margin: 42px 0 30px; }
+  .theme-claude .blk-h:first-child { margin-top: 0; }
+  .theme-claude .blk-p { font-size: 36px; line-height: 1.75; margin-bottom: 36px; }
+  .theme-claude .blk-q { font-size: 36px; line-height: 1.7; color: #6c6a64; background: #f5f0e8; border-left: 8px solid #cc785c; border-radius: 0 12px 12px 0; padding: 32px 36px; margin: 12px 0 40px; }
+  .theme-claude .blk-img { border-radius: 16px; margin-bottom: 36px; }
+  .theme-claude.cover { justify-content: center; }
+  .theme-claude.cover .cover-eyebrow { font-size: 26px; font-weight: 500; letter-spacing: 4px; color: #cc785c; text-transform: uppercase; margin-bottom: 52px; }
+  .theme-claude.cover .cover-title { font-family: Georgia, "Songti SC", "Noto Serif SC", serif; font-size: 88px; font-weight: 500; line-height: 1.2; letter-spacing: -1px; color: #141413; }
+  .theme-claude.cover .cover-meta { margin-top: 64px; font-size: 32px; color: #6c6a64; }
+  .theme-claude.cover .cover-bar { width: 140px; height: 8px; background: #cc785c; border-radius: 9999px; margin-top: 56px; }
+
+  /* 隐藏的测量/导出区 */
+  #measure { position: absolute; left: -99999px; top: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>公众号文章 → 小红书图文</h1>
+    <p>粘贴文章内容或输入公众号链接，自动排出 3:4 图文卡片，支持单张与批量下载</p>
+  </header>
+
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-mode="text">粘贴内容</button>
+      <button class="tab" data-mode="url">文章链接</button>
+    </div>
+
+    <div id="input-text">
+      <textarea id="ta" placeholder="第一行作为标题；空行分段；以 # 开头的行作为小标题；以 > 开头的行作为引用。"></textarea>
+      <div class="hint">示例：第一行「我的产品方法论」→ 封面标题；「# 第一部分」→ 卡片内小标题</div>
+    </div>
+    <div id="input-url" style="display:none">
+      <input type="text" id="url" placeholder="https://mp.weixin.qq.com/s/…">
+      <div class="hint">自动识别文章标题、作者、正文与图片（图片经本地代理，可直接导出）</div>
+    </div>
+
+    <div class="controls">
+      <div class="theme-picker">
+        <button class="theme-chip active" data-theme="notion"><span class="dot" style="background:#0075de"></span>Notion</button>
+        <button class="theme-chip" data-theme="apple"><span class="dot" style="background:#1d1d1f"></span>Apple</button>
+        <button class="theme-chip" data-theme="claude"><span class="dot" style="background:#cc785c"></span>Claude</button>
+      </div>
+      <button class="btn btn-primary" id="go">生成图文</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <div class="result-bar" id="result-bar" style="display:none">
+    <h2>生成结果 <span id="count" style="color:var(--ink-faint);font-weight:400"></span></h2>
+    <button class="btn btn-secondary" id="dl-all">全部下载 (ZIP)</button>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<div id="measure"></div>
+
+<script>
+/* ============ 状态 ============ */
+let mode = 'text';
+let theme = 'notion';
+let article = null; // {title, author, date, blocks}
+
+const $ = (s) => document.querySelector(s);
+const status = (msg, err) => { const el = $('#status'); el.textContent = msg || ''; el.className = 'status' + (err ? ' error' : ''); };
+
+/* ============ UI 事件 ============ */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  mode = t.dataset.mode;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+  $('#input-text').style.display = mode === 'text' ? '' : 'none';
+  $('#input-url').style.display = mode === 'url' ? '' : 'none';
+});
+document.querySelectorAll('.theme-chip').forEach(c => c.onclick = () => {
+  theme = c.dataset.theme;
+  document.querySelectorAll('.theme-chip').forEach(x => x.classList.toggle('active', x === c));
+  if (article) render(); // 已生成时切主题即时重排
+});
+$('#go').onclick = generate;
+$('#dl-all').onclick = downloadAll;
+
+/* ============ 输入解析 → blocks ============ */
+// block: {type:'h'|'p'|'q'|'img', text?, src?}
+function parseText(raw) {
+  const lines = raw.split('\n');
+  let title = '';
+  const blocks = [];
+  let buf = [];
+  const flush = () => {
+    const t = buf.join(' ').trim();
+    if (t) blocks.push({ type: 'p', text: t });
+    buf = [];
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!title && line) { title = line.replace(/^#+\s*/, ''); continue; }
+    if (!line) { flush(); continue; }
+    if (/^#{1,6}\s+/.test(line)) { flush(); blocks.push({ type: 'h', text: line.replace(/^#+\s*/, '') }); continue; }
+    if (/^>\s*/.test(line)) { flush(); blocks.push({ type: 'q', text: line.replace(/^>\s*/, '') }); continue; }
+    buf.push(line);
+  }
+  flush();
+  return { title: title || '未命名', author: '', date: '', blocks };
+}
+
+function parseArticleHtml(data) {
+  const doc = new DOMParser().parseFromString('<div id="root">' + data.html + '</div>', 'text/html');
+  const root = doc.getElementById('root');
+  const blocks = [];
+  const pushText = (t, type) => {
+    t = t.replace(/\s+/g, ' ').trim();
+    if (t) blocks.push({ type: type || 'p', text: t });
+  };
+  const walk = (node) => {
+    for (const el of node.children) {
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'img') {
+        const src = el.getAttribute('src');
+        if (src && !/gif$/i.test(src)) blocks.push({ type: 'img', src });
+        continue;
+      }
+      if (/^h[1-6]$/.test(tag)) { pushText(el.textContent, 'h'); continue; }
+      if (tag === 'blockquote') { pushText(el.textContent, 'q'); continue; }
+      if (tag === 'ul' || tag === 'ol') {
+        let idx = 1;
+        for (const li of el.querySelectorAll(':scope > li')) pushText((tag === 'ol' ? (idx++) + '. ' : '· ') + li.textContent);
+        continue;
+      }
+      // 包含图片的容器：先取其中图片，再取纯文本
+      const imgs = el.querySelectorAll('img');
+      const ownText = el.textContent.replace(/\s+/g, ' ').trim();
+      if (imgs.length && el.children.length) { walk(el); continue; }
+      if (imgs.length) {
+        for (const im of imgs) { const s = im.getAttribute('src'); if (s) blocks.push({ type: 'img', src: s }); }
+        continue;
+      }
+      if (tag === 'p' || tag === 'section' || tag === 'div') {
+        // 纯文本段落；加粗整段视作小标题
+        const strong = el.querySelector('strong,b');
+        const isHeading = strong && strong.textContent.trim() === ownText && ownText.length < 40;
+        if (el.children.length && !isHeading && (tag === 'section' || tag === 'div')) { walk(el); continue; }
+        pushText(ownText, isHeading ? 'h' : 'p');
+        continue;
+      }
+      pushText(ownText);
+    }
+  };
+  walk(root);
+  // 合并相邻重复
+  const dedup = blocks.filter((b, i) => !(b.type !== 'img' && i && blocks[i - 1].type === b.type && blocks[i - 1].text === b.text));
+  return { title: data.title || '未命名', author: data.author || '', date: data.date || '', blocks: dedup };
+}
+
+/* ============ 生成 ============ */
+async function generate() {
+  try {
+    $('#go').disabled = true;
+    if (mode === 'text') {
+      const raw = $('#ta').value.trim();
+      if (!raw) { status('请先粘贴文章内容', true); return; }
+      article = parseText(raw);
+    } else {
+      const u = $('#url').value.trim();
+      if (!u) { status('请先输入文章链接', true); return; }
+      status('抓取文章中…');
+      const resp = await fetch('/api/article?url=' + encodeURIComponent(u));
+      const data = await resp.json();
+      if (!resp.ok) { status(data.error || '抓取失败', true); return; }
+      article = parseArticleHtml(data);
+    }
+    status('排版中…');
+    await render();
+    status('完成，共 ' + document.querySelectorAll('.xhs-card').length + ' 张');
+  } catch (e) {
+    status('出错了：' + (e.message || e), true);
+  } finally {
+    $('#go').disabled = false;
+  }
+}
+
+/* ============ 分页排版 ============ */
+const CARD_W = 1080, CARD_H = 1440;
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function makeCard(isCover) {
+  const card = el('div', 'xhs-card theme-' + theme + (isCover ? ' cover' : ''));
+  return card;
+}
+
+function blockNode(b) {
+  if (b.type === 'img') {
+    const img = el('img', 'blk-img');
+    img.src = b.src;
+    img.style.maxHeight = '900px';
+    return img;
+  }
+  const map = { h: 'blk-h', p: 'blk-p', q: 'blk-q' };
+  return el('div', map[b.type] || 'blk-p', b.text);
+}
+
+// 等待卡片内图片加载完（拿到真实高度再测量）
+function waitImages(node) {
+  const imgs = [...node.querySelectorAll('img')];
+  return Promise.all(imgs.map(im => im.complete ? 1 : new Promise(r => { im.onload = im.onerror = r; })));
+}
+
+// 按句子拆长段
+function splitSentences(text) {
+  return text.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [text];
+}
+
+async function paginate(blocks) {
+  const measure = $('#measure');
+  measure.innerHTML = '';
+  const pages = [];
+  let card = makeCard(false);
+  let body = el('div', 'xhs-body');
+  let footer = el('div', 'xhs-footer');
+  card.append(body, footer);
+  measure.append(card);
+
+  const bodyMax = () => body.clientHeight; // flex:1 自动 = 可用高
+  const fits = () => body.scrollHeight <= body.clientHeight + 2;
+
+  const newPage = () => {
+    pages.push(card);
+    card = makeCard(false);
+    body = el('div', 'xhs-body');
+    footer = el('div', 'xhs-footer');
+    card.append(body, footer);
+    measure.append(card);
+  };
+
+  for (const b of blocks) {
+    const node = blockNode(b);
+    body.append(node);
+    if (b.type === 'img') await waitImages(node.parentElement ? node : body);
+    if (fits()) {
+      // 避免孤行标题：标题落在页面底部且下方剩余空间不足以放一行正文 → 移到下一页
+      if (b.type === 'h' && body.clientHeight - (node.offsetTop + node.offsetHeight) < 160 && body.children.length > 1) {
+        node.remove();
+        newPage();
+        body.append(node);
+      }
+      continue;
+    }
+
+    // 放不下：先移出
+    node.remove();
+    if (b.type === 'img') {
+      // 图片：若当前页已有内容 → 开新页放图；若新页仍放不下 → 限高
+      if (body.children.length) newPage();
+      body.append(node);
+      await waitImages(body);
+      if (!fits()) { node.style.maxHeight = (body.clientHeight - 8) + 'px'; node.style.objectFit = 'contain'; }
+      continue;
+    }
+    if (b.type === 'h' || b.type === 'q') {
+      if (body.children.length) newPage();
+      body.append(node);
+      if (!fits() && b.type === 'q') {
+        // 引用过长按段落处理
+        node.remove();
+        blocks.splice(blocks.indexOf(b) + 1, 0, { type: 'p', text: b.text });
+        continue;
+      }
+      continue;
+    }
+    // 段落：按句子填充
+    const sentences = splitSentences(b.text);
+    let cur = el('div', 'blk-p', '');
+    body.append(cur);
+    for (const s of sentences) {
+      cur.textContent += s;
+      if (!fits()) {
+        cur.textContent = cur.textContent.slice(0, -s.length);
+        if (!cur.textContent) cur.remove();
+        newPage();
+        cur = el('div', 'blk-p', s);
+        body.append(cur);
+      }
+    }
+  }
+  if (body.children.length) pages.push(card); else card.remove();
+  return pages;
+}
+
+function coverCard(a) {
+  const c = makeCard(true);
+  const wrap = el('div', 'xhs-body');
+  wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.justifyContent = 'center';
+  if (theme === 'apple') wrap.style.alignItems = 'center';
+  wrap.append(el('div', 'cover-eyebrow', a.author || '图文笔记'));
+  wrap.append(el('div', 'cover-title', a.title));
+  const meta = [a.author, a.date].filter(Boolean).join(' · ');
+  if (meta) wrap.append(el('div', 'cover-meta', meta));
+  wrap.append(el('div', 'cover-bar'));
+  c.append(wrap);
+  return c;
+}
+
+async function render() {
+  const a = article;
+  $('#grid').innerHTML = '';
+  const pages = await paginate([...a.blocks]);
+  const cards = [coverCard(a), ...pages];
+  const total = cards.length;
+
+  cards.forEach((card, i) => {
+    // 页脚
+    let footer = card.querySelector('.xhs-footer');
+    if (!footer) { footer = el('div', 'xhs-footer'); card.append(footer); }
+    footer.innerHTML = '';
+    footer.append(el('span', '', a.author || a.title.slice(0, 18)), el('span', '', (i + 1) + ' / ' + total));
+    if (i === 0) footer.style.display = 'none'; // 封面不要页脚
+
+    // 平铺展示（缩放视口）
+    const cell = el('div', 'card-cell');
+    const vp = el('div', 'card-viewport');
+    const scaler = el('div', 'card-scale');
+    scaler.append(card);
+    vp.append(scaler);
+    const actions = el('div', 'cell-actions');
+    const label = el('span', '', i === 0 ? '封面' : '第 ' + (i + 1) + ' 张');
+    const btn = el('button', 'dl-one', '下载 PNG');
+    btn.onclick = () => downloadOne(card, i);
+    actions.append(label, btn);
+    cell.append(vp, actions);
+    $('#grid').append(cell);
+
+    const fit = () => { const s = vp.clientWidth / CARD_W; scaler.style.transform = 'scale(' + s + ')'; };
+    fit();
+    new ResizeObserver(fit).observe(vp);
+  });
+
+  $('#measure').innerHTML = '';
+  $('#result-bar').style.display = 'flex';
+  $('#count').textContent = '· ' + total + ' 张 · 1080×1440';
+}
+
+/* ============ 下载 ============ */
+async function captureCard(card) {
+  // 克隆到无缩放的离屏容器，保证 1080×1440 原尺寸导出
+  const stage = el('div');
+  stage.style.cssText = 'position:fixed;left:-99999px;top:0;';
+  const clone = card.cloneNode(true);
+  clone.style.transform = 'none';
+  stage.append(clone);
+  document.body.append(stage);
+  await waitImages(clone);
+  const canvas = await html2canvas(clone, { width: CARD_W, height: CARD_H, scale: 1, useCORS: true, backgroundColor: null });
+  stage.remove();
+  return canvas;
+}
+
+function safeName(s) { return (s || 'xhs').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40); }
+
+async function downloadOne(card, i) {
+  status('导出第 ' + (i + 1) + ' 张…');
+  const canvas = await captureCard(card);
+  const a = document.createElement('a');
+  a.download = safeName(article.title) + '_' + String(i + 1).padStart(2, '0') + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  status('已下载');
+}
+
+async function downloadAll() {
+  const cards = [...document.querySelectorAll('#grid .xhs-card')];
+  if (!cards.length) return;
+  const zip = new JSZip();
+  for (let i = 0; i < cards.length; i++) {
+    status('打包 ' + (i + 1) + '/' + cards.length + '…');
+    const canvas = await captureCard(cards[i]);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    zip.file(safeName(article.title) + '_' + String(i + 1).padStart(2, '0') + '.png', blob);
+  }
+  status('生成 ZIP…');
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = safeName(article.title) + '_小红书图文.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  status('已下载 ZIP（' + cards.length + ' 张）');
+}
+</script>
+</body>
+</html>
