@@ -1,0 +1,16 @@
+{
+  "name": "about-blog",
+  "version": "1.0.0",
+  "description": "Personal about page for kongge.space",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && cp index.html dist/index.html",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name kong-space"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^4.107.1"
+  }
+}
