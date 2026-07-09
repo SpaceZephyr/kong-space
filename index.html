@@ -13,8 +13,28 @@
       --light: #888;
       --line: #e8e2d6;
       --link: #1756a9;
+      --link-hover: #0b3a75;
       --code-bg: #f5efe4;
+      --button-bg: #fff7ea;
+      --button-text: #4d463b;
+      --button-border: #ded4c3;
       --max: 760px;
+      color-scheme: light;
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #11100d;
+      --text: #e9e0d1;
+      --muted: #b3a996;
+      --light: #8f8678;
+      --line: #312c24;
+      --link: #8db8ff;
+      --link-hover: #c4d9ff;
+      --code-bg: #211d18;
+      --button-bg: #1b1813;
+      --button-text: #dccfbb;
+      --button-border: #3b3429;
+      color-scheme: dark;
     }
 
     * {
@@ -34,6 +54,7 @@
       line-height: 1.78;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
+      transition: background-color 180ms ease, color 180ms ease;
     }
 
     .site {
@@ -46,14 +67,46 @@
       margin-bottom: 54px;
     }
 
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
     .title {
       display: inline-block;
-      margin: 0 0 16px;
+      margin: 0;
       color: var(--text);
       font-size: 28px;
       font-weight: 700;
       line-height: 1.2;
       text-decoration: none;
+    }
+
+    .theme-toggle {
+      flex: none;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--button-border);
+      border-radius: 999px;
+      color: var(--button-text);
+      background: var(--button-bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--muted);
+    }
+
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--link);
+      outline-offset: 3px;
     }
 
     nav {
@@ -79,7 +132,7 @@
 
     nav a:hover,
     a:hover {
-      color: #0b3a75;
+      color: var(--link-hover);
     }
 
     h1,
@@ -214,6 +267,10 @@
         margin-bottom: 42px;
       }
 
+      .header-top {
+        align-items: flex-start;
+      }
+
       h2 {
         margin-top: 38px;
         padding-top: 30px;
@@ -224,7 +281,10 @@
 <body>
   <main class="site">
     <header>
-      <a class="title" href="#">空格的键盘</a>
+      <div class="header-top">
+        <a class="title" href="#">空格的键盘</a>
+        <button class="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button>
+      </div>
       <nav aria-label="站内导航">
         <a href="#about">About</a>
         <a href="#product">Product</a>
@@ -369,5 +429,40 @@
       © 空格的键盘 · Create over taste · Life over create · Share more, Gain more
     </footer>
   </main>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var toggle = document.querySelector(".theme-toggle");
+      var storageKey = "kongge-space-theme";
+      var savedTheme = localStorage.getItem(storageKey);
+      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+      function resolveTheme() {
+        return savedTheme || (prefersDark.matches ? "dark" : "light");
+      }
+
+      function applyTheme(theme) {
+        root.dataset.theme = theme;
+        toggle.textContent = theme === "dark" ? "浅色" : "深色";
+        toggle.setAttribute("aria-pressed", String(theme === "dark"));
+      }
+
+      applyTheme(resolveTheme());
+
+      toggle.addEventListener("click", function () {
+        var nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+        savedTheme = nextTheme;
+        localStorage.setItem(storageKey, nextTheme);
+        applyTheme(nextTheme);
+      });
+
+      prefersDark.addEventListener("change", function () {
+        if (!localStorage.getItem(storageKey)) {
+          applyTheme(resolveTheme());
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
