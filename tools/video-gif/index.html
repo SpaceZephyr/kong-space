@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频转 GIF · 本地转换</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+<style>
+  :root {
+    --canvas: #ffffff; --canvas-soft: #f6f5f4; --ink: #000; --ink-2: #31302e;
+    --ink-muted: #615d59; --ink-faint: #a39e98; --hairline: #e6e6e6;
+    --primary: #0075de; --primary-active: #005bab; --danger: #c2410c; --ok: #059669;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, Monaco, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; }
+  .app { max-width: 1240px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  header.top h1 { color: var(--ink); font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  header.top p { margin-top: 4px; color: var(--ink-muted); font-size: 14px; }
+  .badge { color: var(--ink-faint); font-size: 13px; }
+  .cols { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(420px, 1.1fr); gap: 20px; align-items: start; margin-top: 20px; }
+  @media (max-width: 940px) { .cols { grid-template-columns: 1fr; } }
+  .pane { overflow: hidden; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px;
+    border-bottom: 1px solid var(--hairline); color: var(--ink-faint); font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; flex-wrap: wrap;
+  }
+  .body { padding: 18px; }
+  .drop {
+    display: grid; place-items: center; min-height: 178px; border: 1px dashed #d7d0c6; border-radius: 12px;
+    background: #fbfaf9; cursor: pointer; text-align: center; transition: border-color .18s, background .18s;
+  }
+  .drop:hover, .drop.drag { border-color: var(--primary); background: #f3f8ff; }
+  .drop b { display: block; color: var(--ink); font-size: 17px; margin-bottom: 7px; }
+  .drop span { color: var(--ink-muted); font-size: 13px; line-height: 1.6; }
+  input[type="file"] { display: none; }
+  .file-meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+  .metric { padding: 12px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; }
+  .metric span { display: block; color: var(--ink-faint); font-size: 12px; margin-bottom: 4px; }
+  .metric b { color: var(--ink); font-size: 15px; font-weight: 650; word-break: break-all; }
+  .settings { display: grid; gap: 14px; margin-top: 18px; }
+  .row { display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; align-items: center; }
+  .row label { color: var(--ink-muted); font-size: 13px; }
+  .row output { min-width: 72px; color: var(--ink); font-size: 13px; font-family: var(--mono); text-align: right; }
+  input[type="range"] { width: 100%; accent-color: var(--primary); }
+  input[type="number"] {
+    width: 100%; height: 36px; border: 1px solid var(--hairline); border-radius: 8px; padding: 0 10px;
+    color: var(--ink-2); font-family: var(--sans); font-size: 14px; outline: none;
+  }
+  input[type="number"]:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,117,222,.12); }
+  .buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .btn {
+    height: 39px; padding: 0 20px; border: none; border-radius: 9999px; font-family: var(--sans);
+    font-size: 14px; font-weight: 550; cursor: pointer;
+  }
+  .btn-primary { color: #fff; background: var(--primary); }
+  .btn-primary:hover { background: var(--primary-active); }
+  .btn-secondary { color: var(--ink); background: #fff; border: 1px solid var(--hairline); }
+  .btn-secondary:hover { background: #fbfaf9; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .note { margin-top: 14px; color: var(--ink-faint); font-size: 12px; line-height: 1.65; }
+  .progress { height: 8px; overflow: hidden; border-radius: 9999px; background: #eeece9; margin-top: 14px; }
+  .bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), #7c3aed); transition: width .18s ease; }
+  .status { min-height: 20px; margin-top: 10px; color: var(--ink-muted); font-size: 13px; line-height: 1.55; }
+  .status.error { color: var(--danger); }
+  .status.ok { color: var(--ok); }
+  .preview {
+    min-height: 520px; display: grid; place-items: center; padding: 20px; background:
+      linear-gradient(#f1efee 1px, transparent 1px),
+      linear-gradient(90deg, #f1efee 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .preview-card {
+    width: min(100%, 620px); min-height: 340px; display: grid; place-items: center; overflow: hidden;
+    border: 1px solid var(--hairline); border-radius: 12px; background: #fff; box-shadow: 0 1px 5px rgba(15,23,42,.04);
+  }
+  video, canvas, img { display: block; max-width: 100%; height: auto; }
+  video { width: 100%; background: #111; }
+  .empty { color: var(--ink-faint); font-size: 14px; text-align: center; line-height: 1.7; padding: 32px; }
+  .result-meta {
+    display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px;
+    border-top: 1px solid var(--hairline); flex-wrap: wrap;
+  }
+  .result-meta.show { display: flex; }
+  .result-meta span { color: var(--ink-muted); font-size: 13px; }
+  .result-meta b { color: var(--ink); }
+  @media (max-width: 620px) {
+    .app { padding: 28px 18px 52px; }
+    .row { grid-template-columns: 1fr; gap: 7px; }
+    .row output { text-align: left; }
+    .file-meta { grid-template-columns: 1fr; }
+    .preview { min-height: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>视频转 GIF</h1>
+      <p>本地截帧与编码，视频不上传；适合 10 秒以内的轻量 GIF。</p>
+    </div>
+    <span class="badge">最大 200MB · 最长 10s · 目标 0.5-10MB</span>
+  </header>
+
+  <div class="cols">
+    <div class="pane">
+      <div class="pane-head">
+        <span>Source</span>
+        <span>Local only</span>
+      </div>
+      <div class="body">
+        <label class="drop" id="drop">
+          <input id="file" type="file" accept="video/*">
+          <span><b>选择或拖入视频</b>MP4 / MOV / WebM 等浏览器可播放格式，最大 200MB</span>
+        </label>
+
+        <div class="file-meta">
+          <div class="metric"><span>文件</span><b id="m-name">未选择</b></div>
+          <div class="metric"><span>视频</span><b id="m-video">等待读取</b></div>
+        </div>
+
+        <div class="settings">
+          <div class="row">
+            <label for="start">开始时间</label>
+            <input id="start" type="range" min="0" max="0" value="0" step="0.1">
+            <output id="o-start">0.0s</output>
+          </div>
+          <div class="row">
+            <label for="clip">截取时长</label>
+            <input id="clip" type="range" min="1" max="10" value="4" step="0.1">
+            <output id="o-clip">4.0s</output>
+          </div>
+          <div class="row">
+            <label for="width">GIF 宽度</label>
+            <input id="width" type="range" min="240" max="720" value="480" step="20">
+            <output id="o-width">480px</output>
+          </div>
+          <div class="row">
+            <label for="fps">帧率</label>
+            <input id="fps" type="range" min="4" max="15" value="10" step="1">
+            <output id="o-fps">10fps</output>
+          </div>
+          <div class="row">
+            <label for="target">目标大小</label>
+            <input id="target" type="range" min="0.5" max="10" value="3" step="0.5">
+            <output id="o-target">3.0MB</output>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button class="btn btn-primary" id="go" disabled>生成 GIF</button>
+          <button class="btn btn-secondary" id="frame" disabled>预览首帧</button>
+          <button class="btn btn-secondary" id="reset">重置</button>
+        </div>
+
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div class="status" id="status">选择视频后开始。</div>
+        <p class="note">目标大小不是硬保证：GIF 体积取决于画面运动、颜色复杂度、帧率和宽度。超过目标时工具会自动降低宽度、帧率和编码质量，最多重试 4 次。</p>
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-head">
+        <span>Preview</span>
+        <span id="attempt">等待生成</span>
+      </div>
+      <div class="preview">
+        <div class="preview-card" id="preview"><span class="empty">选择视频后可预览首帧；生成后这里会显示 GIF。</span></div>
+      </div>
+      <div class="result-meta" id="result-meta">
+        <span id="result-info"></span>
+        <button class="btn btn-primary" id="download" disabled>下载 GIF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<video id="video" muted playsinline style="display:none"></video>
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+const MAX_FILE = 200 * 1024 * 1024;
+const WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
+// Worker 必须同源：把 CDN 上的 worker 脚本取回来转成同源 Blob URL
+let workerBlobUrl = '';
+async function getWorkerUrl() {
+  if (workerBlobUrl) return workerBlobUrl;
+  const resp = await fetch(WORKER);
+  if (!resp.ok) throw new Error('gif.worker.js 加载失败 HTTP ' + resp.status);
+  const code = await resp.text();
+  workerBlobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+  return workerBlobUrl;
+}
+getWorkerUrl().catch(() => {}); // 预热，失败时转换阶段会重试并报错
+const $ = (s) => document.querySelector(s);
+const video = $('#video');
+const canvas = $('#canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+let fileUrl = '';
+let resultUrl = '';
+let resultBlob = null;
+let duration = 0;
+let sourceFile = null;
+let busy = false;
+
+function fmtBytes(n) {
+  if (!n) return '0B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0, v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(i ? 2 : 0) + units[i];
+}
+
+function setStatus(msg, type) {
+  $('#status').textContent = msg;
+  $('#status').className = 'status' + (type ? ' ' + type : '');
+}
+
+function setProgress(v) {
+  $('#bar').style.width = Math.max(0, Math.min(100, v)) + '%';
+}
+
+function updateOutputs() {
+  const start = Number($('#start').value);
+  const maxClip = Math.max(1, Math.min(10, duration - start || 10));
+  if (Number($('#clip').value) > maxClip) $('#clip').value = maxClip;
+  $('#clip').max = maxClip.toFixed(1);
+  $('#o-start').textContent = Number($('#start').value).toFixed(1) + 's';
+  $('#o-clip').textContent = Number($('#clip').value).toFixed(1) + 's';
+  $('#o-width').textContent = $('#width').value + 'px';
+  $('#o-fps').textContent = $('#fps').value + 'fps';
+  $('#o-target').textContent = Number($('#target').value).toFixed(1) + 'MB';
+}
+
+function resetResult() {
+  if (resultUrl) URL.revokeObjectURL(resultUrl);
+  resultUrl = '';
+  resultBlob = null;
+  $('#download').disabled = true;
+  $('#result-meta').classList.remove('show');
+  $('#attempt').textContent = '等待生成';
+}
+
+function seekTo(t) {
+  return new Promise((resolve, reject) => {
+    const done = () => { cleanup(); resolve(); };
+    const fail = () => { cleanup(); reject(new Error('视频定位失败')); };
+    const cleanup = () => {
+      video.removeEventListener('seeked', done);
+      video.removeEventListener('error', fail);
+    };
+    video.addEventListener('seeked', done, { once: true });
+    video.addEventListener('error', fail, { once: true });
+    video.currentTime = Math.max(0, Math.min(t, duration || t));
+  });
+}
+
+function calcSize(width) {
+  const ratio = video.videoHeight / video.videoWidth || 0.5625;
+  const w = Math.max(160, Math.round(width / 2) * 2);
+  const h = Math.max(90, Math.round((w * ratio) / 2) * 2);
+  return { w, h };
+}
+
+async function drawFrameAt(t, width) {
+  await seekTo(t);
+  const { w, h } = calcSize(width);
+  canvas.width = w;
+  canvas.height = h;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(video, 0, 0, w, h);
+}
+
+async function previewFrame() {
+  if (!sourceFile || busy) return;
+  resetResult();
+  setStatus('正在预览首帧…');
+  await drawFrameAt(Number($('#start').value), Number($('#width').value));
+  const img = new Image();
+  img.src = canvas.toDataURL('image/jpeg', .9);
+  $('#preview').innerHTML = '';
+  $('#preview').append(img);
+  setStatus('首帧预览完成', 'ok');
+}
+
+async function encodeGif(opts) {
+  const workerUrl = await getWorkerUrl();
+  return new Promise((resolve, reject) => {
+    const gif = new GIF({
+      workers: Math.min(4, Math.max(2, navigator.hardwareConcurrency ? Math.floor(navigator.hardwareConcurrency / 2) : 2)),
+      quality: opts.quality,
+      workerScript: workerUrl,
+      width: opts.width,
+      height: opts.height,
+      dither: opts.dither,
+      repeat: 0,
+      background: '#fff'
+    });
+    opts.frames.forEach((frame) => gif.addFrame(frame, { delay: opts.delay }));
+    gif.on('progress', p => setProgress(50 + p * 45));
+    gif.on('finished', blob => resolve(blob));
+    gif.on('abort', () => reject(new Error('编码已取消')));
+    gif.render();
+  });
+}
+
+async function captureFrames(params) {
+  const frames = [];
+  const delay = Math.round(1000 / params.fps);
+  const frameCount = Math.max(1, Math.ceil(params.clip * params.fps));
+  const { w, h } = calcSize(params.width);
+  canvas.width = w;
+  canvas.height = h;
+  for (let i = 0; i < frameCount; i++) {
+    const t = Math.min(params.start + i / params.fps, params.start + params.clip - 0.001);
+    await seekTo(t);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(video, 0, 0, w, h);
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    c.getContext('2d').drawImage(canvas, 0, 0);
+    frames.push(c);
+    setProgress((i + 1) / frameCount * 48);
+    setStatus('截帧中 ' + (i + 1) + '/' + frameCount + '…');
+    await new Promise(r => setTimeout(r, 0));
+  }
+  return { frames, width: w, height: h, delay };
+}
+
+function nextParams(params, actual, target) {
+  const ratio = Math.max(0.45, Math.min(0.92, Math.sqrt(target / actual) * 0.9));
+  return {
+    ...params,
+    width: Math.max(180, Math.round(params.width * ratio / 20) * 20),
+    fps: Math.max(4, Math.floor(params.fps * Math.max(0.65, ratio))),
+    quality: Math.min(30, params.quality + 5),
+    dither: false
+  };
+}
+
+async function generateOnce(params, attempt, total) {
+  $('#attempt').textContent = '第 ' + attempt + '/' + total + ' 次';
+  setProgress(0);
+  setStatus('准备第 ' + attempt + ' 次转换…');
+  const capture = await captureFrames(params);
+  setStatus('编码 GIF 中…');
+  const blob = await encodeGif({ ...params, ...capture });
+  return blob;
+}
+
+async function generate() {
+  if (!sourceFile || busy) return;
+  busy = true;
+  resetResult();
+  $('#go').disabled = true;
+  $('#frame').disabled = true;
+  const target = Number($('#target').value) * 1024 * 1024;
+  let params = {
+    start: Number($('#start').value),
+    clip: Math.min(10, Number($('#clip').value)),
+    width: Number($('#width').value),
+    fps: Number($('#fps').value),
+    quality: 10,
+    dither: 'FloydSteinberg-serpentine'
+  };
+  try {
+    let blob = null;
+    let finalAttempt = 1;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      finalAttempt = attempt;
+      blob = await generateOnce(params, attempt, 4);
+      if (blob.size <= target || attempt === 4) break;
+      setStatus('当前 ' + fmtBytes(blob.size) + '，超过目标，自动降低参数重试…');
+      params = nextParams(params, blob.size, target);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    resultBlob = blob;
+    resultUrl = URL.createObjectURL(blob);
+    const img = new Image();
+    img.src = resultUrl;
+    $('#preview').innerHTML = '';
+    $('#preview').append(img);
+    $('#download').disabled = false;
+    $('#result-meta').classList.add('show');
+    $('#result-info').innerHTML = '<b>' + fmtBytes(blob.size) + '</b> · ' + params.width + 'px · ' + params.fps + 'fps · ' + Number(params.clip).toFixed(1) + 's';
+    setProgress(100);
+    setStatus(blob.size <= target ? '完成，已控制在目标大小内' : '完成，但画面复杂，仍略高于目标大小', blob.size <= target ? 'ok' : '');
+    $('#attempt').textContent = '完成 · ' + finalAttempt + ' 次';
+  } catch (err) {
+    setStatus('转换失败：' + (err.message || err), 'error');
+    $('#attempt').textContent = '转换失败';
+  } finally {
+    busy = false;
+    $('#go').disabled = !sourceFile;
+    $('#frame').disabled = !sourceFile;
+  }
+}
+
+function loadFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('video/')) return setStatus('请选择视频文件', 'error');
+  if (file.size > MAX_FILE) return setStatus('文件超过 200MB，请换一个更小的视频', 'error');
+  sourceFile = file;
+  resetResult();
+  if (fileUrl) URL.revokeObjectURL(fileUrl);
+  fileUrl = URL.createObjectURL(file);
+  video.src = fileUrl;
+  video.load();
+  $('#m-name').textContent = file.name + ' · ' + fmtBytes(file.size);
+  $('#m-video').textContent = '读取中…';
+  setStatus('正在读取视频信息…');
+}
+
+video.addEventListener('loadedmetadata', () => {
+  duration = video.duration || 0;
+  const maxStart = Math.max(0, duration - 1);
+  $('#start').max = maxStart.toFixed(1);
+  $('#start').value = '0';
+  $('#clip').max = Math.min(10, duration || 10).toFixed(1);
+  $('#clip').value = Math.min(4, duration || 4).toFixed(1);
+  $('#m-video').textContent = Math.round(video.videoWidth) + '×' + Math.round(video.videoHeight) + ' · ' + duration.toFixed(1) + 's';
+  $('#go').disabled = false;
+  $('#frame').disabled = false;
+  updateOutputs();
+  setStatus(duration > 10 ? '已加载。请选择 10 秒以内片段。' : '已加载，可以生成 GIF。', 'ok');
+  previewFrame();
+});
+
+video.addEventListener('error', () => {
+  setStatus('浏览器无法解码这个视频格式，建议换 MP4 / WebM。', 'error');
+  $('#m-video').textContent = '读取失败';
+});
+
+$('#file').addEventListener('change', (e) => loadFile(e.target.files[0]));
+['start', 'clip', 'width', 'fps', 'target'].forEach(id => $('#' + id).addEventListener('input', updateOutputs));
+$('#frame').onclick = previewFrame;
+$('#go').onclick = generate;
+$('#download').onclick = () => {
+  if (!resultBlob) return;
+  const a = document.createElement('a');
+  const base = (sourceFile && sourceFile.name ? sourceFile.name.replace(/\.[^.]+$/, '') : 'video').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
+  a.href = resultUrl;
+  a.download = base + '.gif';
+  a.click();
+};
+$('#reset').onclick = () => {
+  sourceFile = null;
+  duration = 0;
+  resetResult();
+  if (fileUrl) URL.revokeObjectURL(fileUrl);
+  fileUrl = '';
+  video.removeAttribute('src');
+  video.load();
+  $('#file').value = '';
+  $('#m-name').textContent = '未选择';
+  $('#m-video').textContent = '等待读取';
+  $('#preview').innerHTML = '<span class="empty">选择视频后可预览首帧；生成后这里会显示 GIF。</span>';
+  $('#go').disabled = true;
+  $('#frame').disabled = true;
+  setProgress(0);
+  setStatus('选择视频后开始。');
+  updateOutputs();
+};
+
+const drop = $('#drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag');
+  loadFile(e.dataTransfer.files[0]);
+});
+updateOutputs();
+</script>
+</body>
+</html>
