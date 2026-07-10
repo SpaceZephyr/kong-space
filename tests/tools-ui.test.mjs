@@ -36,3 +36,9 @@ test('every build copy source exists', () => {
     assert.ok(existsSync(new URL('../' + path, import.meta.url)), path);
   }
 });
+
+test('xhs uses Editorial Console shell and stable controls', () => {
+  const html = read('tools/xhs/index.html');
+  for (const token of ['/tools/editorial.css', 'ec-topbar', 'ec-identity', 'ec-workspace', 'aria-live="polite"', 'id="go"', 'id="dl-all"']) assert.ok(html.includes(token), token);
+  assert.doesNotMatch(html, /示例：第一行/);
+});
