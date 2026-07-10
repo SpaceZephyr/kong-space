@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今天天气怎么样 · 毒舌天气播报</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root { --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans); min-height: 100vh; color: #fff;
+    background: linear-gradient(160deg, #4a6fa5, #839dc2); transition: background 1.2s ease;
+    overflow-x: hidden;
+  }
+  #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .app { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 36px 20px 80px; }
+  header.top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  header.top h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; text-shadow: 0 1px 6px rgba(0,0,0,.18); }
+  header.top p { font-size: 13px; opacity: .85; }
+
+  .searchbar { display: flex; gap: 10px; margin: 22px 0 6px; position: relative; }
+  #city {
+    flex: 1; padding: 12px 18px; border-radius: 9999px; border: none; outline: none;
+    font-family: var(--sans); font-size: 15px; background: rgba(255,255,255,.92); color: #222;
+  }
+  .btn {
+    padding: 12px 24px; border-radius: 9999px; border: none; cursor: pointer;
+    font-size: 15px; font-weight: 600; font-family: var(--sans);
+    background: rgba(0,0,0,.28); color: #fff; backdrop-filter: blur(6px);
+  }
+  .btn:hover { background: rgba(0,0,0,.4); }
+  .btn.small { padding: 8px 16px; font-size: 13px; }
+  #sugg {
+    position: absolute; top: 52px; left: 0; right: 110px; z-index: 30; background: #fff; border-radius: 14px;
+    box-shadow: 0 10px 32px rgba(0,0,0,.22); overflow: hidden; display: none;
+  }
+  #sugg div { padding: 11px 18px; font-size: 14px; color: #333; cursor: pointer; }
+  #sugg div:hover { background: #f2f2f2; }
+
+  .tones { display: flex; gap: 8px; margin: 14px 0 20px; flex-wrap: wrap; }
+  .tone {
+    padding: 6px 15px; border-radius: 9999px; font-size: 13px; cursor: pointer;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28); color: #fff;
+  }
+  .tone.on { background: rgba(255,255,255,.92); color: #222; font-weight: 600; }
+
+  .card {
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+    border-radius: 20px; padding: 24px; backdrop-filter: blur(10px);
+    margin-bottom: 18px; box-shadow: 0 6px 24px rgba(0,0,0,.10);
+  }
+  .now { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .now .emoji { font-size: 84px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.2)); }
+  .now .temp { font-size: 64px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+  .now .desc { font-size: 15px; opacity: .92; margin-top: 8px; }
+  .now .place { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .now .meta { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; opacity: .88; flex-wrap: wrap; }
+
+  .talk { font-size: 17px; line-height: 1.9; }
+  .talk b { font-weight: 800; }
+  .talk .refresh { margin-top: 14px; }
+
+  .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .idx { background: rgba(255,255,255,.13); border-radius: 14px; padding: 14px; }
+  .idx .t { font-size: 13px; opacity: .85; }
+  .idx .v { font-size: 17px; font-weight: 800; margin: 5px 0 4px; }
+  .idx .d { font-size: 12px; opacity: .82; line-height: 1.55; }
+
+  .days { display: flex; flex-direction: column; gap: 4px; }
+  .day { display: flex; align-items: center; gap: 12px; padding: 9px 6px; border-radius: 10px; font-size: 14px; }
+  .day:hover { background: rgba(255,255,255,.10); }
+  .day .dn { width: 58px; opacity: .9; flex: none; }
+  .day .de { width: 34px; font-size: 20px; flex: none; text-align: center; }
+  .day .dt { width: 92px; flex: none; font-weight: 600; }
+  .day .dq { flex: 1; opacity: .85; font-size: 13px; }
+
+  h2.sec { font-size: 15px; font-weight: 700; opacity: .92; margin: 26px 0 12px; letter-spacing: 1px; }
+
+  /* PK */
+  .pkbar { display: flex; gap: 10px; position: relative; }
+  #pkcity { flex: 1; padding: 10px 16px; border-radius: 9999px; border: none; outline: none; font-family: var(--sans); font-size: 14px; background: rgba(255,255,255,.92); color: #222; }
+  .pk-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 620px) { .pk-cols { grid-template-columns: 1fr; } }
+  .pk-card { background: rgba(255,255,255,.13); border-radius: 14px; padding: 16px; text-align: center; }
+  .pk-card .e { font-size: 40px; }
+  .pk-card .n { font-weight: 800; margin: 6px 0 2px; }
+  .pk-card .s { font-size: 13px; opacity: .85; }
+  .pk-card .score { font-size: 26px; font-weight: 800; margin-top: 8px; }
+  #pk-verdict { margin-top: 14px; font-size: 15px; line-height: 1.8; text-align: center; font-weight: 600; }
+
+  .status { font-size: 13px; opacity: .8; margin: 8px 2px; min-height: 18px; }
+  footer.ft { margin-top: 30px; font-size: 12px; opacity: .65; line-height: 1.7; }
+
+  /* 分享卡（离屏 1080×1440） */
+  #share-card {
+    position: fixed; left: -99999px; top: 0; width: 1080px; height: 1440px;
+    font-family: var(--sans); color: #fff; padding: 100px 90px; display: flex; flex-direction: column;
+  }
+  #share-card .sc-city { font-size: 44px; font-weight: 700; opacity: .95; }
+  #share-card .sc-date { font-size: 30px; opacity: .8; margin-top: 10px; }
+  #share-card .sc-emoji { font-size: 220px; line-height: 1.25; margin: 60px 0 10px; }
+  #share-card .sc-temp { font-size: 150px; font-weight: 800; letter-spacing: -4px; }
+  #share-card .sc-desc { font-size: 42px; margin-top: 10px; opacity: .92; }
+  #share-card .sc-talk { font-size: 40px; line-height: 1.8; margin-top: 70px; font-weight: 600; }
+  #share-card .sc-foot { margin-top: auto; display: flex; justify-content: space-between; font-size: 26px; opacity: .75; }
+
+  /* 粒子动画 */
+  @keyframes fall { from { transform: translateY(-8vh); } to { transform: translateY(108vh); } }
+  @keyframes snowfall { from { transform: translateY(-8vh) translateX(0); } to { transform: translateY(108vh) translateX(40px); } }
+  @keyframes twinkle { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+  @keyframes drift { from { transform: translateX(-20vw); } to { transform: translateX(120vw); } }
+  .drop { position: absolute; top: 0; width: 2px; height: 16vh; background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.5)); animation: fall linear infinite; }
+  .flake { position: absolute; top: 0; color: #fff; animation: snowfall linear infinite; }
+  .star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; animation: twinkle ease-in-out infinite; }
+  .cloud { position: absolute; font-size: 60px; opacity: .5; animation: drift linear infinite; }
+  .sunray { position: absolute; width: 60vw; height: 60vw; border-radius: 50%; background: radial-gradient(circle, rgba(255,236,170,.55), rgba(255,236,170,0) 65%); top: -18vw; right: -14vw; }
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div id="share-card"></div>
+<div class="app">
+  <header class="top">
+    <h1>今天天气怎么样</h1>
+    <p>Open-Meteo 免费数据 · 播报纯属整活，出门请自行判断</p>
+  </header>
+
+  <div class="searchbar">
+    <input id="city" placeholder="输入城市，比如：深圳 / 北京 / Tokyo" autocomplete="off">
+    <button class="btn" id="go">查天气</button>
+    <div id="sugg"></div>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div class="tones" id="tones">
+    <span class="tone on" data-tone="dushe">🔪 毒舌</span>
+    <span class="tone" data-tone="mama">🧣 老妈叮嘱</span>
+    <span class="tone" data-tone="dagong">🧑‍💻 打工人</span>
+    <span class="tone" data-tone="wenyi">🍂 文艺</span>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="card now" id="now"></div>
+
+    <div class="card talk">
+      <div id="talk-text"></div>
+      <div class="refresh"><button class="btn small" id="retalk">🎲 换个说法</button>
+      <button class="btn small" id="share">📮 生成分享卡</button></div>
+    </div>
+
+    <h2 class="sec">生活指数 · 直接给结论</h2>
+    <div class="idx-grid" id="idx"></div>
+
+    <h2 class="sec">未来 7 天 · 每天一句话</h2>
+    <div class="card days" id="days"></div>
+
+    <h2 class="sec">城市 PK · 今天谁更适合出门</h2>
+    <div class="card">
+      <div class="pkbar">
+        <input id="pkcity" placeholder="输入对手城市，比如：哈尔滨" autocomplete="off">
+        <button class="btn small" id="pkgo">开战</button>
+      </div>
+      <div id="pkresult"></div>
+    </div>
+  </div>
+
+  <footer class="ft">数据来自 open-meteo.com（免费开源气象 API）· 查询在浏览器本地发起，不经过任何中间服务器 · kongge.space</footer>
+</div>
+
+<script>
+/* ================= 天气代码 → 视觉 ================= */
+// WMO code → [emoji白天, emoji夜间, 描述, 主题key]
+const WMO = {
+  0:['☀️','🌙','晴','clear'],1:['🌤','🌙','大致晴','clear'],2:['⛅️','☁️','多云','cloud'],3:['☁️','☁️','阴','cloud'],
+  45:['🌫','🌫','雾','fog'],48:['🌫','🌫','冻雾','fog'],
+  51:['🌦','🌧','毛毛雨','rain'],53:['🌦','🌧','小雨','rain'],55:['🌧','🌧','中雨','rain'],
+  56:['🌧','🌧','冻雨','rain'],57:['🌧','🌧','冻雨','rain'],
+  61:['🌦','🌧','小雨','rain'],63:['🌧','🌧','中雨','rain'],65:['⛈','⛈','大雨','rain'],
+  66:['🌧','🌧','冻雨','rain'],67:['🌧','🌧','冻雨','rain'],
+  71:['🌨','🌨','小雪','snow'],73:['❄️','❄️','中雪','snow'],75:['❄️','❄️','大雪','snow'],77:['❄️','❄️','雪粒','snow'],
+  80:['🌦','🌧','阵雨','rain'],81:['🌧','🌧','强阵雨','rain'],82:['⛈','⛈','暴雨','rain'],
+  85:['🌨','🌨','阵雪','snow'],86:['❄️','❄️','大阵雪','snow'],
+  95:['⛈','⛈','雷阵雨','storm'],96:['⛈','⛈','雷雨冰雹','storm'],99:['⛈','⛈','强雷暴','storm'],
+};
+const THEMES = {
+  clearDay:  'linear-gradient(160deg,#3d9be9,#8fd0ff 60%,#ffe9b8)',
+  clearNight:'linear-gradient(160deg,#0b1026,#26355f 65%,#3d4c7c)',
+  cloudDay:  'linear-gradient(160deg,#6b7f96,#9fb2c4)',
+  cloudNight:'linear-gradient(160deg,#232936,#3c4557)',
+  rainDay:   'linear-gradient(160deg,#3a4b5c,#5f7489)',
+  rainNight: 'linear-gradient(160deg,#1a2230,#2d3a4d)',
+  snowDay:   'linear-gradient(160deg,#8fa6bd,#d5e2ee)',
+  snowNight: 'linear-gradient(160deg,#2a3547,#4d5d75)',
+  fogDay:    'linear-gradient(160deg,#8d9aa5,#b9c3cb)',
+  fogNight:  'linear-gradient(160deg,#2f3841,#4d5860)',
+  stormDay:  'linear-gradient(160deg,#2c3444,#4a5670)',
+  stormNight:'linear-gradient(160deg,#141a26,#2a3348)',
+  hot:       'linear-gradient(160deg,#e0592e,#f2a04f)',
+};
+
+function setSky(themeKey, isDay, temp) {
+  let key = themeKey + (isDay ? 'Day' : 'Night');
+  if (themeKey === 'clear' && temp >= 35 && isDay) key = 'hot';
+  document.body.style.background = THEMES[key] || THEMES.cloudDay;
+  const sky = document.getElementById('sky');
+  sky.innerHTML = '';
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  if (themeKey === 'rain' || themeKey === 'storm') {
+    for (let i = 0; i < 46; i++) { const d = document.createElement('div'); d.className = 'drop';
+      d.style.left = rnd(0, 100) + 'vw'; d.style.animationDuration = rnd(0.7, 1.4) + 's'; d.style.animationDelay = rnd(0, 1.5) + 's'; sky.append(d); }
+  } else if (themeKey === 'snow') {
+    for (let i = 0; i < 34; i++) { const f = document.createElement('div'); f.className = 'flake'; f.textContent = '❄';
+      f.style.left = rnd(0, 100) + 'vw'; f.style.fontSize = rnd(8, 18) + 'px'; f.style.animationDuration = rnd(4, 9) + 's'; f.style.animationDelay = rnd(0, 6) + 's'; sky.append(f); }
+  } else if (themeKey === 'clear' && !isDay) {
+    for (let i = 0; i < 60; i++) { const s = document.createElement('div'); s.className = 'star';
+      s.style.left = rnd(0, 100) + 'vw'; s.style.top = rnd(0, 70) + 'vh'; s.style.animationDuration = rnd(1.5, 4) + 's'; s.style.animationDelay = rnd(0, 3) + 's'; sky.append(s); }
+  } else if (themeKey === 'clear' && isDay) {
+    const r = document.createElement('div'); r.className = 'sunray'; sky.append(r);
+  } else if (themeKey === 'cloud' || themeKey === 'fog') {
+    for (let i = 0; i < 4; i++) { const c = document.createElement('div'); c.className = 'cloud'; c.textContent = '☁️';
+      c.style.top = rnd(4, 36) + 'vh'; c.style.animationDuration = rnd(50, 110) + 's'; c.style.animationDelay = '-' + rnd(0, 60) + 's'; sky.append(c); }
+  }
+}
+
+/* ================= 播报文案库 ================= */
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const BANK = {
+  dushe: {
+    hell:  ['<b>{t}°C</b>，体感 <b>{feels}°C</b>。出门五分钟，流汗两小时，建议原地当咸鱼。','这温度已经不是天气了，是烧烤模式。今天出门的都是勇士，或者外卖骑手。','马路上煎个蛋应该问题不大。空调才是你今天唯一的亲人。'],
+    hot:   ['<b>{t}°C</b>，热但没热死，属于"出门会后悔但不至于进医院"的档位。','太阳很敬业，你也别输，防晒糊脸上再走。','这天气，奶茶店和便利店的冰柜才是人间正义。'],
+    warm:  ['<b>{t}°C</b>，难得像个人过的天气，别浪费在被窝里。','温度刚好，风也不闹，今天心情不好只能怪你自己。','这种天气都不出门走走，你对得起地球自转吗？'],
+    mild:  ['<b>{t}°C</b>，不冷不热，天气界的老好人，没什么可吐槽的，遗憾。','舒服得让人想翘班。想想房贷，算了，好好上班。','这温度挑不出毛病，建议把吐槽的力气留给工作群。'],
+    cool:  ['<b>{t}°C</b>，微凉。别嘴硬，薄外套穿上，风度和温度今天可以兼得。','早晚凉飕飕，中午又回暖，典型的"穿衣靠猜"型天气。','这温度最擅长的就是让嘴硬的人感冒。'],
+    cold:  ['<b>{t}°C</b>，冷。你妈喊你穿秋裤不是没有道理的。','离开被窝需要勇气，今天的你比想象中坚强。','这天气握手都算真爱，毕竟要把手从口袋里拿出来。'],
+    freezing: ['<b>{t}°C</b>，零下了朋友。这不是穿不穿秋裤的问题，是穿几条的问题。','出门请自觉进入企鹅模式：能不出就不出。','脸已经不是自己的了，这就是大自然的冷暴力。'],
+    rainHigh: ['降水概率 <b>{rain}%</b>——不是"可能下雨"，是"雨在等你出门"。伞，带！','今天不带伞出门，等于给老天爷递投名状。','雨势预定，发型自求多福。'],
+    rainMid: ['降水概率 {rain}%，赌不赌？反正输的人是你，伞塞包里不亏。','天空处于"想哭又没哭出来"的状态，包里备把伞防它破防。'],
+    windStrong: ['风 <b>{wind}km/h</b>，发型和裙子今天都归风管。','这风力，体重轻的建议兜里揣两块砖。'],
+    sticky: ['湿度 <b>{hum}%</b>，空气黏得像刚喝完的奶茶杯壁。','这湿度，人和衣服都拧得出水。'],
+    uvHigh: ['紫外线拉满，防晒不涂，晒斑包邮到脸。'],
+    closing: ['就这样，散会。','以上，爱出不出。','播报完毕，本咸鱼要去午睡了。','祝你今天比天气好一点。'],
+  },
+  mama: {
+    hell:  ['<b>{t}°C</b>了！中午千万别出去晒！空调别对着吹，容易头疼！','这么热的天，多喝水！绿豆汤妈给你煮好了（并没有，自己煮）。'],
+    hot:   ['天热，出门戴个帽子，包里放瓶水，别等渴了才喝！','<b>{t}°C</b>，热归热，冰的少吃点，肠胃要紧！'],
+    warm:  ['今天天气好，出去走走，别老闷在屋里看手机！','这天气舒服，被子可以晒一晒，晚上睡觉香！'],
+    mild:  ['温度正好，但早晚温差大，外套带一件，听妈的没错！','<b>{t}°C</b>，舒服的天，记得按时吃饭啊！'],
+    cool:  ['凉了凉了，外套穿上！别跟妈犟，感冒了没人替你难受！','<b>{t}°C</b>，秋衣该找出来了，别要风度不要温度！'],
+    cold:  ['<b>{t}°C</b>！秋裤！穿！不穿别喊冷！','这么冷的天，围巾手套都戴上，耳朵别冻着！'],
+    freezing: ['零下了！羽绒服穿最厚的那件！热水袋充上电！','这种天少出门，非要出去就里三层外三层裹严实！'],
+    rainHigh: ['要下雨！伞一定带上！妈说的，别嫌啰嗦！','降水 <b>{rain}%</b>，鞋别穿布的，湿了一天难受！'],
+    rainMid: ['可能有雨，包里塞把折叠伞，有备无患！'],
+    windStrong: ['风大！帽子戴紧，别迎着风走，容易吹头疼！'],
+    sticky: ['太潮了，衣服别晾外面，屋里除湿开一开！'],
+    uvHigh: ['太阳毒，防晒擦上，帽子戴上，别晒黑了回来喊后悔！'],
+    closing: ['照顾好自己啊。','在外面吃好点，别省。','早点回家，到家发个消息。','记得给妈打电话。'],
+  },
+  dagong: {
+    hell:  ['<b>{t}°C</b>，通勤即蒸桑拿，到公司先在工位融化十分钟。','建议公司按高温补贴发工资，毕竟命是空调给的，班是硬上的。'],
+    hot:   ['<b>{t}°C</b>，地铁口到公司这段路就是今日份的有氧运动。','热到只想点冰美式，反正咖啡钱和工资一样留不住。'],
+    warm:  ['天气好到不适合上班，可惜老板不这么想。','<b>{t}°C</b>，适合摸鱼时看看窗外，假装在度假。'],
+    mild:  ['不冷不热，通勤幸福感 +1，虽然到了工位就清零。','这天气，午休出去走一圈，是打工人为数不多的福利。'],
+    cool:  ['微凉，工位常备外套的季节到了，空调房老人都懂。','<b>{t}°C</b>，早高峰挤地铁刚好不出汗，感恩。'],
+    cold:  ['<b>{t}°C</b>，起床上班的难度系数直接翻倍。','被窝是冬天的琅琊阁，可惜打卡机不讲武德。'],
+    freezing: ['零下天通勤，到公司手指头得缓半小时才能打字。','这温度，迟到的理由我都帮你想好了：路面结冰，安全第一。'],
+    rainHigh: ['降水 <b>{rain}%</b>，通勤请预留 20 分钟，打车软件已经开始排队了。','下雨天+晚高峰=年度灾难片，伞和心态都要带。'],
+    rainMid: ['可能下雨，工位放伞的人今天赢麻了。'],
+    windStrong: ['风 <b>{wind}km/h</b>，骑车上班的兄弟今天是逆风局。'],
+    sticky: ['湿度爆表，衬衫后背已经开始打卡上班了。'],
+    uvHigh: ['紫外线超标，午饭出门的短短十分钟也别裸奔，防晒喷一喷。'],
+    closing: ['祝早日下班。','搬砖愉快，工资照旧。','今天也是为了碎银几两努力的一天。','下班那一刻，天气才真正开始。'],
+  },
+  wenyi: {
+    hell:  ['<b>{t}°C</b>。蝉声把夏天拉到最满，连风都是烫的。','阳光倾泻如熔金，万物都在午后打盹。'],
+    hot:   ['热浪推着云走，树影是街道仅存的温柔。','<b>{t}°C</b>，适合一杯冰镇的什么，和一段无所事事的时光。'],
+    warm:  ['风是温的，光是软的，今天适合把心事晾一晾。','这样的天气，走再远的路都像散步。'],
+    mild:  ['<b>{t}°C</b>，天气把自己调成了静音模式，温柔得恰到好处。','不冷不热的日子，最适合虚度。'],
+    cool:  ['凉意刚好没过袖口，是换一件针织衫的季节了。','风里有了些故事感，适合戴上耳机走一段长路。'],
+    cold:  ['<b>{t}°C</b>，呵出的气都有了形状，冬天在认真赶来。','冷空气把城市洗得很干净，适合喝一碗热汤。'],
+    freezing: ['零下的世界安静得像一封没有寄出的信。','万物收声，只有围巾和你相依为命。'],
+    rainHigh: ['雨快来了（{rain}%）。听雨这件事，需要一把伞和一点闲心。','天色向晚，雨在云里排练，记得带伞去看这场演出。'],
+    rainMid: ['云很低，也许有雨路过。折叠伞是给意外的浪漫留的座。'],
+    windStrong: ['风很大，大到可以把烦恼吹到下一个街区。'],
+    sticky: ['空气湿得能拧出一首朦胧诗。'],
+    uvHigh: ['阳光过于热情，请以防晒回应它的告白。'],
+    closing: ['今天也请好好生活。','天气是大自然的散文，你是标点。','愿你被这个世界温柔以待，包括天气。'],
+  },
+};
+
+function tempBand(t) {
+  if (t >= 37) return 'hell'; if (t >= 32) return 'hot'; if (t >= 26) return 'warm';
+  if (t >= 18) return 'mild'; if (t >= 10) return 'cool'; if (t >= 0) return 'cold'; return 'freezing';
+}
+
+function makeTalk(tone, c) {
+  const B = BANK[tone];
+  const parts = [pick(B[tempBand(c.feels)])];
+  if (c.rain >= 60) parts.push(pick(B.rainHigh));
+  else if (c.rain >= 30) parts.push(pick(B.rainMid));
+  if (c.wind >= 30) parts.push(pick(B.windStrong));
+  if (c.hum >= 85 && c.feels >= 24) parts.push(pick(B.sticky));
+  if (c.uv >= 8) parts.push(pick(B.uvHigh));
+  parts.push(pick(B.closing));
+  return parts.join(' ').replace(/\{t\}/g, Math.round(c.t)).replace(/\{feels\}/g, Math.round(c.feels))
+    .replace(/\{rain\}/g, c.rain).replace(/\{wind\}/g, Math.round(c.wind)).replace(/\{hum\}/g, c.hum);
+}
+
+/* ================= 生活指数 ================= */
+function indices(c, dailyRainMax3) {
+  const out = [];
+  const t = c.feels;
+  out.push({ t: '👕 穿衣', v: t >= 30 ? '短袖短裤' : t >= 24 ? '短袖/薄衫' : t >= 18 ? '长袖单衣' : t >= 10 ? '外套/卫衣' : t >= 0 ? '毛衣+厚外套' : '羽绒服全套',
+    d: t >= 30 ? '怎么凉快怎么来' : t >= 18 ? '早晚可加件外套' : t >= 0 ? '别硬扛，风度让位' : '秋裤不是可选项' });
+  out.push({ t: '☔️ 带伞', v: c.rain >= 60 ? '必带' : c.rain >= 30 ? '备着' : '不用',
+    d: c.rain >= 60 ? `降水概率 ${c.rain}%，别赌` : c.rain >= 30 ? `概率 ${c.rain}%，折叠伞塞包里` : '今天伞可以休息' });
+  const runOK = t > 5 && t < 30 && c.rain < 40 && c.wind < 30;
+  out.push({ t: '🏃 跑步', v: runOK ? '适宜' : '算了', d: runOK ? '这天气不跑可惜了' : t >= 30 ? '想跑等日落' : c.rain >= 40 ? '雨里跑的是热爱，不跑的是理智' : '风太大/太冷，改日' });
+  const dryOK = c.hum < 70 && c.rain < 30 && c.isDay;
+  out.push({ t: '🧺 晾晒', v: dryOK ? '快去' : '不宜', d: dryOK ? '阳光不要浪费，被子安排' : '晾了也是白晾，可能更湿' });
+  out.push({ t: '🚗 洗车', v: dailyRainMax3 >= 50 ? '白洗' : '可以', d: dailyRainMax3 >= 50 ? `未来三天最高降水 ${dailyRainMax3}%，洗了就是给雨接风` : '近几天没大雨，洗了能新鲜几天' });
+  out.push({ t: '🧋 奶茶', v: '永远适宜', d: t >= 28 ? '冰的，三分糖，谢谢' : t <= 10 ? '热的，捧在手里就是幸福' : '常温也行，主要是想喝' });
+  return out;
+}
+
+const DAYQ = {
+  clear: ['出门的好日子', '太阳营业，心情跟上', '晒被子黄金日'],
+  cloud: ['云在加班，太阳摸鱼', '灰蒙蒙但不碍事', '适合发呆的天'],
+  rain: ['带伞，别嘴硬', '雨天+好音乐=氛围感', '外卖平台的忙碌日'],
+  snow: ['下雪了，记得抬头看看', '堆雪人窗口期', '路滑，慢点走'],
+  fog: ['雾里看花的一天', '开车慢点，雾不讲理'],
+  storm: ['雷雨预定，早点回家', '今天适合宅'],
+};
+
+/* ================= API ================= */
+async function geocode(name) {
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=5&language=zh&format=json`);
+  const j = await r.json();
+  return (j.results || []).map(x => ({ name: x.name, admin: [x.admin1, x.country].filter(Boolean).join(' · '), lat: x.latitude, lon: x.longitude }));
+}
+async function forecast(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m,precipitation` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=auto&forecast_days=7`;
+  const r = await fetch(url);
+  return r.json();
+}
+
+/* ================= 主流程 ================= */
+const $ = (s) => document.querySelector(s);
+let tone = localStorage.getItem('tq-tone') || 'dushe';
+let ctx = null; // 当前城市上下文
+document.querySelectorAll('.tone').forEach(x => {
+  x.classList.toggle('on', x.dataset.tone === tone);
+  x.onclick = () => {
+    tone = x.dataset.tone; localStorage.setItem('tq-tone', tone);
+    document.querySelectorAll('.tone').forEach(y => y.classList.toggle('on', y === x));
+    if (ctx) $('#talk-text').innerHTML = makeTalk(tone, ctx.c);
+  };
+});
+
+function buildCtx(place, data) {
+  const cur = data.current, d = data.daily;
+  const [de, ne, desc, theme] = WMO[cur.weather_code] || ['🌡','🌡','未知','cloud'];
+  const c = {
+    t: cur.temperature_2m, feels: cur.apparent_temperature, hum: cur.relative_humidity_2m,
+    wind: cur.wind_speed_10m, isDay: !!cur.is_day, code: cur.weather_code,
+    rain: d.precipitation_probability_max[0] ?? 0, uv: d.uv_index_max[0] ?? 0,
+    emoji: cur.is_day ? de : ne, desc, theme,
+    tmax: d.temperature_2m_max[0], tmin: d.temperature_2m_min[0],
+  };
+  return { place, c, daily: d };
+}
+
+function comfortScore(c) {
+  return Math.max(0, Math.round(100 - Math.abs(c.feels - 22) * 3 - c.rain * 0.35 - Math.max(0, c.wind - 20) * 1.2 - Math.max(0, c.hum - 70) * 0.4));
+}
+
+function render(x) {
+  ctx = x;
+  const { place, c, daily } = x;
+  setSky(c.theme, c.isDay, c.t);
+  $('#main').style.display = '';
+  $('#now').innerHTML = `
+    <div class="emoji">${c.emoji}</div>
+    <div>
+      <div class="place">${place}</div>
+      <div class="temp">${Math.round(c.t)}°</div>
+      <div class="desc">${c.desc} · 体感 ${Math.round(c.feels)}° · ${Math.round(c.tmin)}~${Math.round(c.tmax)}°</div>
+      <div class="meta"><span>💧 湿度 ${c.hum}%</span><span>💨 风 ${Math.round(c.wind)}km/h</span><span>☔️ 降水 ${c.rain}%</span><span>😎 UV ${c.uv}</span></div>
+    </div>`;
+  $('#talk-text').innerHTML = makeTalk(tone, c);
+  const rain3 = Math.max(...daily.precipitation_probability_max.slice(0, 3).map(v => v ?? 0));
+  $('#idx').innerHTML = indices(c, rain3).map(i =>
+    `<div class="idx"><div class="t">${i.t}</div><div class="v">${i.v}</div><div class="d">${i.d}</div></div>`).join('');
+  const names = ['今天', '明天', '后天'];
+  $('#days').innerHTML = daily.time.map((dt, i) => {
+    const [de, , dsc, th] = WMO[daily.weather_code[i]] || ['🌡','','未知','cloud'];
+    const dn = names[i] || '周' + '日一二三四五六'[new Date(dt + 'T00:00').getDay()];
+    return `<div class="day"><span class="dn">${dn}</span><span class="de">${de}</span>
+      <span class="dt">${Math.round(daily.temperature_2m_min[i])}° ~ ${Math.round(daily.temperature_2m_max[i])}°</span>
+      <span class="dq">${dsc} · ${pick(DAYQ[th] || DAYQ.cloud)}${daily.precipitation_probability_max[i] >= 50 ? ' · 降水 ' + daily.precipitation_probability_max[i] + '%' : ''}</span></div>`;
+  }).join('');
+  $('#pkresult').innerHTML = '';
+}
+
+async function query(name) {
+  if (!name) return;
+  $('#status').textContent = '定位城市…';
+  try {
+    const places = await geocode(name);
+    if (!places.length) { $('#status').textContent = '没找到这个城市，换个写法试试（支持中英文）'; return; }
+    const p = places[0];
+    $('#status').textContent = '获取天气…';
+    const data = await forecast(p.lat, p.lon);
+    render(buildCtx(p.name, data));
+    localStorage.setItem('tq-city', name);
+    $('#status').textContent = '';
+  } catch (e) { $('#status').textContent = '查询失败：' + (e.message || e); }
+}
+
+$('#go').onclick = () => query($('#city').value.trim());
+$('#city').addEventListener('keydown', e => { if (e.key === 'Enter') { $('#sugg').style.display = 'none'; query($('#city').value.trim()); } });
+$('#retalk').onclick = () => { if (ctx) $('#talk-text').innerHTML = makeTalk(tone, ctx.c); };
+
+// 输入联想
+let st;
+$('#city').addEventListener('input', () => {
+  clearTimeout(st);
+  const v = $('#city').value.trim();
+  if (!v) { $('#sugg').style.display = 'none'; return; }
+  st = setTimeout(async () => {
+    const list = await geocode(v).catch(() => []);
+    const box = $('#sugg');
+    if (!list.length) { box.style.display = 'none'; return; }
+    box.innerHTML = list.map((p, i) => `<div data-i="${i}">${p.name} <span style="color:#999;font-size:12px">${p.admin}</span></div>`).join('');
+    box.style.display = 'block';
+    box.querySelectorAll('div[data-i]').forEach(el => el.onclick = async () => {
+      const p = list[+el.dataset.i];
+      $('#city').value = p.name; box.style.display = 'none';
+      $('#status').textContent = '获取天气…';
+      const data = await forecast(p.lat, p.lon);
+      render(buildCtx(p.name, data));
+      $('#status').textContent = '';
+    });
+  }, 300);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.searchbar')) $('#sugg').style.display = 'none'; });
+
+/* ================= 城市 PK ================= */
+$('#pkgo').onclick = async () => {
+  const name = $('#pkcity').value.trim();
+  if (!name || !ctx) return;
+  $('#pkresult').innerHTML = '<p style="opacity:.8;margin-top:12px">对手入场中…</p>';
+  try {
+    const places = await geocode(name);
+    if (!places.length) { $('#pkresult').innerHTML = '<p style="margin-top:12px">没找到对手城市</p>'; return; }
+    const p = places[0];
+    const data = await forecast(p.lat, p.lon);
+    const rival = buildCtx(p.name, data);
+    const a = { name: ctx.place, c: ctx.c, score: comfortScore(ctx.c) };
+    const b = { name: rival.place, c: rival.c, score: comfortScore(rival.c) };
+    const win = a.score === b.score ? null : (a.score > b.score ? a : b);
+    const lose = win === a ? b : a;
+    const verdicts = win === null
+      ? [`${a.name} 和 ${b.name} 打成平手，今天出门体验都一言难尽（或都不错）。`]
+      : [`🏆 <b>${win.name}</b> 以舒适度 ${win.score} : ${lose.score} 获胜——${lose.name} 的朋友，抱抱。`,
+         `今天更适合出门的是 <b>${win.name}</b>（${win.score} 分）。${lose.name}（${lose.score} 分）建议室内活动。`];
+    $('#pkresult').innerHTML = `<div class="pk-cols">` + [a, b].map(x => `
+      <div class="pk-card"><div class="e">${x.c.emoji}</div><div class="n">${x.name}</div>
+      <div class="s">${x.c.desc} · ${Math.round(x.c.t)}° · 体感 ${Math.round(x.c.feels)}° · 降水 ${x.c.rain}%</div>
+      <div class="score">${x.score}<span style="font-size:13px;opacity:.7"> 分</span></div></div>`).join('') +
+      `</div><div id="pk-verdict">${pick(verdicts)}</div>`;
+  } catch (e) { $('#pkresult').innerHTML = '<p style="margin-top:12px">PK 失败：' + (e.message || e) + '</p>'; }
+};
+$('#pkcity').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pkgo').click(); });
+
+/* ================= 分享卡 ================= */
+$('#share').onclick = async () => {
+  if (!ctx) return;
+  const { place, c } = ctx;
+  const card = $('#share-card');
+  let key = c.theme + (c.isDay ? 'Day' : 'Night');
+  if (c.theme === 'clear' && c.t >= 35 && c.isDay) key = 'hot';
+  card.style.background = THEMES[key] || THEMES.cloudDay;
+  const today = new Date();
+  card.innerHTML = `
+    <div class="sc-city">${place}</div>
+    <div class="sc-date">${today.getFullYear()}.${today.getMonth() + 1}.${today.getDate()} · ${'周' + '日一二三四五六'[today.getDay()]}</div>
+    <div class="sc-emoji">${c.emoji}</div>
+    <div class="sc-temp">${Math.round(c.t)}°</div>
+    <div class="sc-desc">${c.desc} · 体感 ${Math.round(c.feels)}° · ${Math.round(c.tmin)}~${Math.round(c.tmax)}° · 降水 ${c.rain}%</div>
+    <div class="sc-talk">${$('#talk-text').textContent}</div>
+    <div class="sc-foot"><span>今天天气怎么样</span><span>kongge.space/tools/tianqi</span></div>`;
+  $('#status').textContent = '生成分享卡…';
+  const canvas = await html2canvas(card, { width: 1080, height: 1440, scale: 1, backgroundColor: null });
+  const aEl = document.createElement('a');
+  aEl.download = `${place}_天气_${today.getMonth() + 1}-${today.getDate()}.png`;
+  aEl.href = canvas.toDataURL('image/png');
+  aEl.click();
+  $('#status').textContent = '已下载分享卡';
+};
+
+// 初始：记住上次城市
+const last = localStorage.getItem('tq-city');
+if (last) { $('#city').value = last; query(last); }
+</script>
+</body>
+</html>

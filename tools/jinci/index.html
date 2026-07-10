@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>违禁词检测 · 公众号 / 小红书 / 抖音</title>
+<style>
+  :root {
+    --canvas: #ffffff; --canvas-soft: #f6f5f4; --ink: #000; --ink-2: #31302e;
+    --ink-muted: #615d59; --ink-faint: #a39e98; --hairline: #e6e6e6;
+    --primary: #0075de; --primary-active: #005bab;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --c-ban: #dc2626; --c-ban-bg: #fee2e2;      /* 严重违禁 */
+    --c-risk: #ea580c; --c-risk-bg: #ffedd5;    /* 高风险 */
+    --c-warn: #d97706; --c-warn-bg: #fef3c7;    /* 建议修改 */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; }
+  .app { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.top h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--ink); }
+  header.top p { color: var(--ink-muted); font-size: 14px; margin-top: 4px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-top: 20px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .pane { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+  .pane-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--ink-faint); border-bottom: 1px solid var(--hairline); flex-wrap: wrap; }
+  textarea#ta { width: 100%; min-height: 56vh; border: none; outline: none; resize: vertical; padding: 18px; font-family: var(--sans); font-size: 15px; line-height: 1.9; color: var(--ink-2); }
+  .btn { padding: 9px 22px; border-radius: 9999px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; font-family: var(--sans); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-active); }
+
+  /* 平台选择 */
+  .platforms { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+  .pf-label { font-size: 13px; color: var(--ink-muted); margin-right: 4px; }
+  .pf {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px;
+    border: 1px solid var(--hairline); background: var(--canvas); font-size: 13.5px; font-weight: 500;
+    cursor: pointer; color: var(--ink-2); user-select: none;
+  }
+  .pf input { display: none; }
+  .pf .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--hairline); }
+  .pf.on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .pf.on .dot { background: var(--pc); }
+
+  /* 评分区 */
+  .scoreboard { display: flex; align-items: center; gap: 24px; padding: 20px; border-bottom: 1px solid var(--hairline); flex-wrap: wrap; }
+  .ring { position: relative; width: 96px; height: 96px; flex: none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .num b { font-size: 24px; color: var(--ink); line-height: 1; }
+  .ring .num span { font-size: 10px; color: var(--ink-faint); margin-top: 3px; }
+  .verdict b { font-size: 17px; color: var(--ink); display: block; margin-bottom: 4px; }
+  .verdict p { font-size: 13px; color: var(--ink-muted); line-height: 1.6; max-width: 300px; }
+  .stats { display: flex; gap: 18px; margin-left: auto; }
+  .stat { text-align: center; }
+  .stat b { font-size: 20px; color: var(--ink); display: block; }
+  .stat span { font-size: 11px; color: var(--ink-faint); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--hairline); }
+  .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); padding: 3px 10px; border-radius: 9999px; background: var(--canvas-soft); }
+  .lg i { width: 10px; height: 10px; border-radius: 3px; }
+
+  #result { padding: 20px; font-size: 15px; line-height: 2.1; max-height: 40vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  #result:empty::before { content: '左侧粘贴内容，选择平台后点「开始检测」'; color: var(--ink-faint); }
+  mark { padding: 1px 3px; border-radius: 4px; cursor: help; font-weight: 600; color: inherit; }
+
+  .hits { border-top: 1px solid var(--hairline); max-height: 32vh; overflow-y: auto; }
+  .hit-row { display: flex; align-items: baseline; gap: 10px; padding: 9px 20px; border-bottom: 1px solid #f3f1ef; font-size: 13.5px; flex-wrap: wrap; }
+  .hit-row:last-child { border-bottom: none; }
+  .hit-word { font-weight: 700; flex: none; }
+  .hit-cat { font-size: 11px; color: var(--ink-faint); flex: none; }
+  .hit-pf { font-size: 11px; color: #fff; padding: 1px 8px; border-radius: 9999px; flex: none; }
+  .hit-sugg { color: var(--ink-muted); }
+  .hit-sugg em { color: #059669; font-style: normal; font-weight: 600; }
+  .empty-tip { padding: 24px 20px; font-size: 14px; color: var(--ink-faint); text-align: center; }
+  .disclaimer { font-size: 12px; color: var(--ink-faint); margin-top: 12px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>违禁词检测</h1>
+    <p>基于新广告法极限词与各平台公开审核规则 · 纯本地检测，内容不离开浏览器</p>
+  </header>
+
+  <div class="cols">
+    <div class="pane">
+      <div class="pane-head">
+        <span>待检测文本</span>
+        <button class="btn btn-primary" id="go">开始检测</button>
+      </div>
+      <textarea id="ta" spellcheck="false" placeholder="粘贴你的文案、笔记、脚本……
+
+试试这段：
+全网最低价！史上第一的减肥神器，百分百根治肥胖，无效退款！仅此一天，错过再等一年。想要的宝子加微信私聊，点赞关注抽大奖，稳赚不赔月入过万！"></textarea>
+    </div>
+
+    <div class="pane">
+      <div class="platforms" id="platforms">
+        <span class="pf-label">检测平台</span>
+        <label class="pf on" data-pf="all" style="--pc:#111"><span class="dot"></span>全平台</label>
+        <label class="pf on" data-pf="wx" style="--pc:#07C160"><span class="dot"></span>公众号</label>
+        <label class="pf on" data-pf="xhs" style="--pc:#FF2442"><span class="dot"></span>小红书</label>
+        <label class="pf on" data-pf="dy" style="--pc:#170B1A"><span class="dot"></span>抖音</label>
+      </div>
+      <div class="scoreboard">
+        <div class="ring">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" fill="none" stroke="#eeece9" stroke-width="9"/>
+            <circle id="arc" cx="48" cy="48" r="42" fill="none" stroke="#059669" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div class="num"><b id="score">–</b><span>违禁风险</span></div>
+        </div>
+        <div class="verdict">
+          <b id="verdict">等待检测</b>
+          <p id="advice">风险百分比综合命中数量与严重度：严重违禁词权重最高，建议修改类最轻。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="st-chars">0</b><span>字数</span></div>
+          <div class="stat"><b id="st-hits">0</b><span>命中</span></div>
+          <div class="stat"><b id="st-ratio">0%</b><span>违禁占比</span></div>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div id="result"></div>
+      <div class="hits" id="hits"></div>
+    </div>
+  </div>
+  <p class="disclaimer">词库整理自《广告法》极限词清单与微信公众平台、小红书社区规范、抖音电商规则的公开条目，供发布前自查参考，不构成平台审核结果承诺。检测完全在本地进行。</p>
+</div>
+
+<script>
+/* ================= 词库 =================
+   sev: ban 严重违禁(9分) / risk 高风险(5分) / warn 建议修改(2分)
+   pf: ['wx','xhs','dy'] 适用平台；'all' = 三平台通用
+================================================ */
+const SEVS = {
+  ban:  { name: '严重违禁', color: 'var(--c-ban)',  bg: 'var(--c-ban-bg)',  w: 9 },
+  risk: { name: '高风险',   color: 'var(--c-risk)', bg: 'var(--c-risk-bg)', w: 5 },
+  warn: { name: '建议修改', color: 'var(--c-warn)', bg: 'var(--c-warn-bg)', w: 2 },
+};
+const PF_NAME = { wx: '公众号', xhs: '小红书', dy: '抖音' };
+const PF_COLOR = { wx: '#07C160', xhs: '#FF2442', dy: '#444' };
+
+// [词或正则, 严重度, 平台, 建议]
+const LEX = [
+  // ===== 新广告法极限词（全平台，严重） =====
+  ['全网最低价?', 'ban', 'all', '写具体价格对比'],
+  [/最(低价|便宜|优惠|划算|实惠)/, 'ban', 'all', '写具体优惠数字'],
+  [/(史上|历史)(第一|最强|最低|最高)/, 'ban', 'all', '删除，改具体事实'],
+  [/(全国|全球|全网|世界|宇宙)(第一|领先|首家|首发|独家|之最)/, 'ban', 'all', '需有证明材料，建议删除'],
+  [/第一(品牌|名)|NO\.?1|No\.?1/, 'ban', 'all', '删除排名断言'],
+  ['绝无仅有', 'ban', 'all', '改「少见」'],
+  ['史无前例', 'ban', 'all', '改「此前没见过」'],
+  ['独一无二', 'risk', 'all', '改「有特色」'],
+  [/(顶级|顶尖|极致|终极|王牌|极品)/, 'ban', 'all', '改具体卖点描述'],
+  [/百分之?百|100%(有效|安全|好评|成功)/, 'ban', 'all', '删除绝对化承诺'],
+  [/(国家级|世界级|国际级)(产品|品质|工艺)?/, 'risk', 'all', '需资质证明，建议删除'],
+  ['万能', 'risk', 'all', '写清楚适用范围'],
+  [/(销量|人气)(冠军|第一)/, 'ban', 'all', '给出可证明的数据来源'],
+  ['抢购', 'warn', 'all', '改「购买」'],
+  [/仅此一(天|次)|错过(再等|不再)/, 'risk', 'all', '删除紧迫施压话术'],
+  [/(秒杀|疯抢|狂欢价)/, 'warn', 'all', '改常规促销表述'],
+  ['特供', 'ban', 'all', '国家明令禁止用语'],
+  ['专供', 'ban', 'all', '国家明令禁止用语'],
+  [/(点击|扫码)(领取|购买|下单)/, 'risk', 'all', '删除诱导点击话术'],
+  [/免费(领取|送|拿)/, 'risk', 'all', '写清楚获取条件'],
+  [/无效(退款|全退)/, 'ban', 'all', '删除绝对化承诺'],
+  // ===== 医疗健康（全平台，严重） =====
+  [/(根治|治愈|药到病除|包治百病)/, 'ban', 'all', '普通内容禁提治疗效果'],
+  [/(抗癌|防癌|降血?压|降血?糖|降血?脂)/, 'ban', 'all', '医疗功效需药监审批，删除'],
+  [/(消炎|杀菌|抑菌)(率|效果)?/, 'risk', 'all', '非药品不可宣称'],
+  [/(减肥|瘦身)(神器|特效|速效)/, 'ban', 'all', '删除功效承诺'],
+  [/(丰胸|生发|祛疤|祛斑|美白)(神器|特效)?/, 'risk', 'all', '功效表述降级为「护理」'],
+  [/(排毒|清宿便|抗衰老|延年益寿)/, 'risk', 'all', '伪概念/夸大，建议删除'],
+  [/(特效药|神药|偏方)/, 'ban', 'all', '删除'],
+  [/无(任何)?(副作用|依赖)/, 'ban', 'all', '删除绝对化安全承诺'],
+  // ===== 金融理财（全平台） =====
+  [/(稳赚|保本|包赚|躺赚|暴富)/, 'ban', 'all', '删除收益承诺'],
+  [/(无|零)风险/, 'ban', 'all', '投资类必须提示风险'],
+  [/(高|超高)(收益|回报)/, 'risk', 'all', '写清楚收益区间与风险'],
+  [/月入(过|上)?[万十百]+/, 'risk', 'all', '删除收入承诺'],
+  [/(翻倍|十倍|百倍)(收益|回报)?/, 'risk', 'all', '删除夸大收益'],
+  [/贷款(秒批|免审)/, 'ban', 'all', '删除'],
+  // ===== 导流与诱导互动（平台差异） =====
+  [/(加|\+)(我)?微信|加v|加V|vx|VX|V信|威信|绿泡泡/, 'ban', ['xhs', 'dy'], '站外导流是限流重灾区，删除'],
+  [/私(信|聊)我/, 'warn', ['xhs', 'dy'], '改「评论区聊」'],
+  [/(点赞|关注|转发)(抽奖|送|领)/, 'risk', ['wx', 'xhs'], '公众号禁诱导分享，改自然表述'],
+  [/评论区?扣[0-9１]/, 'risk', ['dy'], '诱导互动，建议删除'],
+  [/(点击|戳)(链接|下方|蓝字)/, 'warn', ['xhs', 'dy'], '站外链接引导，建议删除'],
+  [/关注(领|送|得)/, 'risk', ['wx', 'xhs', 'dy'], '诱导关注，改自然表述'],
+  [/淘宝|天猫|拼多多|京东链接/, 'warn', ['xhs', 'dy'], '竞对平台词，可能限流'],
+  // ===== 夸大与欺诈 =====
+  [/官方(认证|指定|合作)/, 'risk', 'all', '需授权证明，否则删除'],
+  [/(内部|独家)(渠道|货源|消息)/, 'risk', 'all', '易涉虚假宣传'],
+  [/假一(赔|罚)[十百万]/, 'risk', 'all', '按广告法需可兑现，慎用'],
+  [/(清仓|甩卖|亏本)(价|处理)?/, 'warn', 'all', '需真实，否则涉虚假促销'],
+  [/立(减|返)[0-9０-９]+/, 'warn', 'all', '写清楚活动规则'],
+  // ===== 低俗与敏感（全平台） =====
+  [/(约炮|一夜情|裸聊)/, 'ban', 'all', '违规内容，删除'],
+  [/(赌博|博彩|下注|买码)/, 'ban', 'all', '违法内容，删除'],
+  [/(代考|代写|办证|刷单|刷量)/, 'ban', 'all', '违法灰产，删除'],
+  [/(香烟|电子烟)(推荐|代购)/, 'ban', 'all', '烟草禁止广告'],
+  // ===== 平台专属敏感 =====
+  [/涨粉(秘籍|神器|攻略)/, 'warn', ['dy', 'xhs'], '平台敏感词，换说法'],
+  [/(搬运|洗稿)/, 'risk', ['wx', 'dy'], '原创违规相关，删除'],
+  [/宝子们?|集美们?/, 'warn', ['xhs'], '营销号高频词，易被判营销'],
+  [/(最后[0-9０-９]+(件|天|名))/, 'warn', 'all', '虚假紧迫感，需真实'],
+];
+
+/* ================= 检测 ================= */
+function activePfs() {
+  return [...document.querySelectorAll('.pf.on')].map(x => x.dataset.pf).filter(p => p !== 'all');
+}
+
+function detect(text, pfs) {
+  const hits = [];
+  for (const [pat, sev, pf, sugg] of LEX) {
+    const applies = pf === 'all' ? ['wx', 'xhs', 'dy'] : pf;
+    const matched = applies.filter(p => pfs.includes(p));
+    if (!matched.length) continue;
+    const re = pat instanceof RegExp ? new RegExp(pat.source, 'g') : new RegExp(pat, 'g');
+    let m;
+    while ((m = re.exec(text))) {
+      if (!m[0]) { re.lastIndex++; continue; }
+      hits.push({ start: m.index, end: m.index + m[0].length, str: m[0], sev, pfs: pf === 'all' ? 'all' : matched, sugg });
+    }
+  }
+  hits.sort((a, b) => a.start - b.start || SEVS[b.sev].w - SEVS[a.sev].w);
+  const clean = [];
+  let lastEnd = -1;
+  for (const h of hits) if (h.start >= lastEnd) { clean.push(h); lastEnd = h.end; }
+  return clean;
+}
+
+function scoreOf(hits, chars) {
+  if (!chars) return 0;
+  const weight = hits.reduce((s, h) => s + SEVS[h.sev].w, 0);
+  return Math.min(100, Math.round(weight / chars * 1000 * 1.4));
+}
+
+function verdictOf(score, hits) {
+  const bans = hits.filter(h => h.sev === 'ban').length;
+  if (!hits.length) return ['未发现违禁词 ✅', '#059669', '按当前所选平台的词库没有命中，可以发布。'];
+  if (bans > 0) return ['有严重违禁词 ⚠️', '#dc2626', `${bans} 处严重违禁（红色），发布前必须处理，否则大概率被拒或限流。`];
+  if (score >= 30) return ['风险偏高', '#ea580c', '高风险词较多，建议逐条替换橙色标注后再发。'];
+  return ['轻微风险', '#d97706', '只有少量建议修改项，酌情处理即可。'];
+}
+
+/* ================= 渲染 ================= */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function run() {
+  const text = $('#ta').value;
+  const chars = text.replace(/\s/g, '').length;
+  const pfs = activePfs();
+  const hits = pfs.length ? detect(text, pfs) : [];
+  const score = scoreOf(hits, chars);
+
+  let html = '', pos = 0, banChars = 0;
+  for (const h of hits) {
+    html += esc(text.slice(pos, h.start));
+    const c = SEVS[h.sev];
+    html += `<mark style="background:${c.bg};box-shadow:inset 0 -2px 0 ${c.color};" title="${c.name}：${esc(h.sugg)}">${esc(h.str)}</mark>`;
+    pos = h.end;
+    banChars += h.str.length;
+  }
+  html += esc(text.slice(pos));
+  $('#result').innerHTML = html;
+
+  const [label, color, advice] = verdictOf(score, hits);
+  $('#score').textContent = chars ? score + '%' : '–';
+  $('#verdict').textContent = chars ? label : '等待检测';
+  $('#verdict').style.color = chars ? color : '';
+  $('#advice').textContent = advice;
+  const arc = $('#arc');
+  arc.style.stroke = color;
+  arc.style.strokeDashoffset = 263.9 * (1 - (chars ? score : 0) / 100);
+  arc.style.transition = 'stroke-dashoffset .6s ease, stroke .3s';
+
+  $('#st-chars').textContent = chars;
+  $('#st-hits').textContent = hits.length;
+  $('#st-ratio').textContent = chars ? (banChars / chars * 100).toFixed(1) + '%' : '0%';
+
+  const bySev = {};
+  hits.forEach(h => bySev[h.sev] = (bySev[h.sev] || 0) + 1);
+  $('#legend').innerHTML = Object.keys(SEVS).map(k => bySev[k]
+    ? `<span class="lg"><i style="background:${SEVS[k].color}"></i>${SEVS[k].name} × ${bySev[k]}</span>` : '').join('');
+
+  const merged = {};
+  hits.forEach(h => {
+    const key = h.sev + '|' + h.str;
+    if (!merged[key]) merged[key] = { ...h, count: 0 };
+    merged[key].count++;
+  });
+  const rows = Object.values(merged).sort((a, b) => SEVS[b.sev].w - SEVS[a.sev].w || b.count - a.count);
+  $('#hits').innerHTML = rows.length
+    ? rows.map(h => {
+        const pfTags = h.pfs === 'all'
+          ? '<span class="hit-pf" style="background:#888">全平台</span>'
+          : h.pfs.map(p => `<span class="hit-pf" style="background:${PF_COLOR[p]}">${PF_NAME[p]}</span>`).join('');
+        return `<div class="hit-row">
+          <span class="hit-word" style="color:${SEVS[h.sev].color}">${esc(h.str)}${h.count > 1 ? ' ×' + h.count : ''}</span>
+          <span class="hit-cat">${SEVS[h.sev].name}</span>${pfTags}
+          <span class="hit-sugg">→ <em>${esc(h.sugg)}</em></span>
+        </div>`;
+      }).join('')
+    : (chars ? '<div class="empty-tip">当前所选平台下未命中违禁词 🎉</div>' : '');
+}
+
+/* ================= 平台勾选 ================= */
+document.querySelectorAll('.pf').forEach(pf => pf.onclick = () => {
+  const isAll = pf.dataset.pf === 'all';
+  const subs = [...document.querySelectorAll('.pf')].filter(x => x.dataset.pf !== 'all');
+  if (isAll) {
+    const on = !pf.classList.contains('on');
+    pf.classList.toggle('on', on);
+    subs.forEach(x => x.classList.toggle('on', on));
+  } else {
+    pf.classList.toggle('on');
+    document.querySelector('[data-pf="all"]').classList.toggle('on', subs.every(x => x.classList.contains('on')));
+  }
+  run();
+});
+
+$('#go').onclick = run;
+let timer;
+$('#ta').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 400); });
+</script>
+</body>
+</html>

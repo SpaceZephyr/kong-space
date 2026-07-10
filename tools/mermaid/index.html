@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mermaid 预览器 · 简约图表渲染</title>
+<style>
+  :root {
+    --canvas: #ffffff; --canvas-soft: #f6f5f4; --ink: #0f172a; --ink-2: #31302e;
+    --ink-muted: #615d59; --ink-faint: #a39e98; --hairline: #e6e6e6;
+    --primary: #2563eb; --primary-active: #1d4ed8; --violet: #7c3aed;
+    --danger: #c2410c; --success: #059669;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, Monaco, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; font-family: var(--sans); background: var(--canvas-soft); color: var(--ink-2); font-size: 15px; }
+  .app { max-width: 1360px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  header.top h1 { color: var(--ink); font-size: 24px; font-weight: 750; letter-spacing: -0.5px; }
+  header.top p { margin-top: 4px; color: var(--ink-muted); font-size: 14px; }
+  .mark { display: inline-flex; align-items: center; gap: 8px; color: var(--primary); font-size: 13px; font-weight: 700; }
+  .mark::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--violet)); }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin: 20px 0 16px; flex-wrap: wrap; }
+  .btn {
+    height: 38px; padding: 0 18px; border: none; border-radius: 9999px; font-family: var(--sans);
+    font-size: 14px; font-weight: 550; cursor: pointer; white-space: nowrap;
+  }
+  .btn-primary { color: #fff; background: var(--primary); }
+  .btn-primary:hover { background: var(--primary-active); }
+  .btn-secondary { color: var(--ink); background: var(--canvas); border: 1px solid var(--hairline); }
+  .btn-secondary:hover { background: #fbfaf9; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .spacer { flex: 1; }
+  .status { min-height: 20px; color: var(--ink-muted); font-size: 13px; }
+  .status.error { color: var(--danger); }
+  .status.ok { color: var(--success); }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 13px; border: 1px solid var(--hairline);
+    border-radius: 9999px; background: var(--canvas); color: var(--ink-2); font-size: 13px; font-weight: 550; cursor: pointer;
+  }
+  .chip:hover { background: #fbfaf9; }
+  .chip.active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--dot, var(--primary)); }
+
+  .cols { display: grid; grid-template-columns: minmax(360px, .88fr) minmax(420px, 1.12fr); gap: 20px; align-items: stretch; }
+  @media (max-width: 980px) { .cols { grid-template-columns: 1fr; } }
+  .pane { min-height: 68vh; overflow: hidden; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 43px; padding: 10px 16px;
+    border-bottom: 1px solid var(--hairline); color: var(--ink-faint); font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; flex-wrap: wrap;
+  }
+  .count { color: var(--ink-faint); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  textarea {
+    display: block; width: 100%; min-height: calc(68vh - 43px); border: none; outline: none; resize: vertical; padding: 18px;
+    background: var(--canvas); color: var(--ink-2); font-family: var(--mono); font-size: 13.5px; line-height: 1.72; tab-size: 2;
+  }
+  textarea::placeholder { color: var(--ink-faint); }
+  .preview-shell { height: calc(68vh - 43px); display: flex; flex-direction: column; background: #fbfaf9; }
+  .preview-tools {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hairline); background: #fff;
+  }
+  .select, .range {
+    height: 34px; border: 1px solid var(--hairline); border-radius: 9999px; background: #fff; color: var(--ink-2);
+    font-family: var(--sans); font-size: 13px; outline: none;
+  }
+  .select { padding: 0 12px; }
+  .range { width: 130px; accent-color: var(--primary); }
+  .stage {
+    flex: 1; overflow: auto; padding: 32px; display: grid; place-items: center;
+    background:
+      linear-gradient(#f1efee 1px, transparent 1px),
+      linear-gradient(90deg, #f1efee 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  #diagram {
+    min-width: 260px; min-height: 180px; display: grid; place-items: center; padding: 28px;
+    border: 1px solid var(--hairline); border-radius: 10px; background: #fff; box-shadow: 0 1px 5px rgba(15, 23, 42, .04);
+    transform-origin: center center;
+  }
+  #diagram svg { max-width: min(100%, 1200px); height: auto; display: block; }
+  .empty { color: var(--ink-faint); font-size: 14px; text-align: center; line-height: 1.7; }
+  .error-box {
+    max-width: 720px; padding: 18px 20px; border: 1px solid #fed7aa; border-radius: 10px; background: #fff7ed;
+    color: var(--danger); font-family: var(--mono); font-size: 13px; line-height: 1.65; white-space: pre-wrap;
+  }
+  @media (max-width: 720px) {
+    .app { padding: 28px 18px 52px; }
+    .pane, .preview-shell, textarea { min-height: 60vh; }
+    .stage { padding: 18px; }
+    .preview-tools { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Mermaid 预览器</h1>
+      <p>输入 Mermaid 语言，渲染流程图、时序图、思维导图、时间线等简约图形图表。</p>
+    </div>
+    <span class="mark">Mermaid Diagram Skill</span>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn btn-primary" id="render">渲染图表</button>
+    <button class="btn btn-secondary" id="copy-code">复制代码</button>
+    <button class="btn btn-secondary" id="copy-svg">复制 SVG</button>
+    <button class="btn btn-secondary" id="download-svg">下载 SVG</button>
+    <span class="spacer"></span>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="chips" id="samples"></div>
+
+  <div class="cols">
+    <div class="pane">
+      <div class="pane-head">
+        <span>Mermaid</span>
+        <span class="count" id="count">0 字符</span>
+      </div>
+      <textarea id="code" spellcheck="false" placeholder="输入 Mermaid 语法，例如：graph TD&#10;  A[开始] --> B{判断}"></textarea>
+    </div>
+
+    <div class="pane">
+      <div class="pane-head">
+        <span>Preview</span>
+        <span class="count" id="meta">等待渲染</span>
+      </div>
+      <div class="preview-shell">
+        <div class="preview-tools">
+          <select class="select" id="theme" aria-label="选择主题">
+            <option value="skillhub">SkillHub 简洁</option>
+            <option value="ink">墨线黑白</option>
+            <option value="forest">森林绿</option>
+            <option value="violet">电紫</option>
+            <option value="dark">深色</option>
+          </select>
+          <input class="range" id="zoom" type="range" min="60" max="160" value="100" aria-label="缩放">
+          <span class="count" id="zoom-label">100%</span>
+        </div>
+        <div class="stage">
+          <div id="diagram"><span class="empty">选择模板或输入 Mermaid 代码后渲染</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+const $ = (s) => document.querySelector(s);
+const codeEl = $('#code');
+const diagramEl = $('#diagram');
+const statusEl = $('#status');
+let lastSvg = '';
+let renderSeq = 0;
+
+const SAMPLES = [
+  {
+    key: 'flow',
+    name: '流程图',
+    dot: '#2563eb',
+    code: `flowchart TD
+  A[用户输入需求] --> B{是否清晰?}
+  B -- 是 --> C[生成 Mermaid 草图]
+  B -- 否 --> D[补充节点与关系]
+  D --> C
+  C --> E[预览与调整]
+  E --> F[复制或下载 SVG]`
+  },
+  {
+    key: 'sequence',
+    name: '时序图',
+    dot: '#7c3aed',
+    code: `sequenceDiagram
+  participant U as 用户
+  participant T as 预览器
+  participant M as Mermaid
+  U->>T: 输入图表语言
+  T->>M: render(code)
+  M-->>T: 返回 SVG
+  T-->>U: 展示简约图表`
+  },
+  {
+    key: 'mindmap',
+    name: '思维导图',
+    dot: '#059669',
+    code: `mindmap
+  root((内容系统))
+    选题
+      用户问题
+      热点趋势
+      长尾搜索
+    生产
+      大纲
+      初稿
+      配图
+    分发
+      公众号
+      小红书
+      即刻`
+  },
+  {
+    key: 'timeline',
+    name: '时间线',
+    dot: '#ea580c',
+    code: `timeline
+  title 工具上线计划
+  2026-07-09 : 公众号排版
+             : 小红书图文
+             : AI 味检测
+  2026-07-10 : HTML 预览
+             : Mermaid 预览器
+  下一步 : 更多内容效率工具`
+  },
+  {
+    key: 'gantt',
+    name: '甘特图',
+    dot: '#0f766e',
+    code: `gantt
+  title 小工具开发排期
+  dateFormat  YYYY-MM-DD
+  section 设计
+  信息架构           :done,    a1, 2026-07-10, 1d
+  视觉风格           :active,  a2, 2026-07-10, 1d
+  section 实现
+  前端页面           :b1, 2026-07-10, 1d
+  部署验证           :b2, after b1, 1d`
+  },
+  {
+    key: 'pie',
+    name: '饼图',
+    dot: '#db2777',
+    code: `pie showData
+  title 内容创作时间分布
+  "调研" : 25
+  "写作" : 35
+  "排版" : 20
+  "分发" : 20`
+  },
+  {
+    key: 'quadrant',
+    name: '象限图',
+    dot: '#0891b2',
+    code: `quadrantChart
+  title 工具优先级
+  x-axis 低影响 --> 高影响
+  y-axis 低成本 --> 高成本
+  quadrant-1 战略项目
+  quadrant-2 谨慎评估
+  quadrant-3 暂缓
+  quadrant-4 快速上线
+  HTML预览: [0.72, 0.18]
+  Mermaid预览: [0.80, 0.30]
+  复杂数据看板: [0.86, 0.78]`
+  },
+  {
+    key: 'class',
+    name: '类图',
+    dot: '#475569',
+    code: `classDiagram
+  class Tool {
+    +String name
+    +String path
+    +render()
+  }
+  class MermaidPreview {
+    +String code
+    +String theme
+    +downloadSvg()
+  }
+  Tool <|-- MermaidPreview`
+  }
+];
+
+const THEMES = {
+  skillhub: {
+    mermaidTheme: 'base',
+    variables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      primaryColor: '#eef4ff',
+      primaryTextColor: '#172554',
+      primaryBorderColor: '#2563eb',
+      lineColor: '#64748b',
+      secondaryColor: '#f5f3ff',
+      tertiaryColor: '#f8fafc',
+      clusterBkg: '#ffffff',
+      clusterBorder: '#dbe3ef'
+    }
+  },
+  ink: {
+    mermaidTheme: 'base',
+    variables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      primaryColor: '#ffffff',
+      primaryTextColor: '#111111',
+      primaryBorderColor: '#111111',
+      lineColor: '#333333',
+      secondaryColor: '#f6f5f4',
+      tertiaryColor: '#fafafa',
+      clusterBkg: '#ffffff',
+      clusterBorder: '#d4d4d4'
+    }
+  },
+  forest: { mermaidTheme: 'forest', variables: {} },
+  violet: {
+    mermaidTheme: 'base',
+    variables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      primaryColor: '#f5f3ff',
+      primaryTextColor: '#2e1065',
+      primaryBorderColor: '#7c3aed',
+      lineColor: '#6d28d9',
+      secondaryColor: '#eef2ff',
+      tertiaryColor: '#ffffff'
+    }
+  },
+  dark: {
+    mermaidTheme: 'dark',
+    variables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    }
+  }
+};
+
+function setStatus(msg, type) {
+  statusEl.textContent = msg || '';
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+function updateCount() {
+  $('#count').textContent = codeEl.value.length + ' 字符';
+}
+
+function initMermaid() {
+  const t = THEMES[$('#theme').value];
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: t.mermaidTheme,
+    themeVariables: t.variables,
+    securityLevel: 'strict',
+    flowchart: { htmlLabels: false, curve: 'basis' },
+    sequence: { showSequenceNumbers: false },
+    mindmap: { padding: 16 }
+  });
+}
+
+function escapeErr(err) {
+  return String(err && (err.str || err.message) || err || '渲染失败').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function renderDiagram() {
+  const text = codeEl.value.trim();
+  if (!text) {
+    diagramEl.innerHTML = '<span class="empty">先输入 Mermaid 代码</span>';
+    $('#meta').textContent = '等待输入';
+    setStatus('请先输入 Mermaid 代码', 'error');
+    return;
+  }
+  const seq = ++renderSeq;
+  try {
+    initMermaid();
+    setStatus('渲染中…');
+    const id = 'mmd-' + Date.now() + '-' + seq;
+    const { svg } = await mermaid.render(id, text);
+    if (seq !== renderSeq) return;
+    lastSvg = svg;
+    diagramEl.innerHTML = svg;
+    applyZoom();
+    $('#meta').textContent = detectType(text) + ' · SVG';
+    setStatus('渲染完成', 'ok');
+  } catch (err) {
+    lastSvg = '';
+    diagramEl.innerHTML = '<div class="error-box">' + escapeErr(err) + '</div>';
+    $('#meta').textContent = '语法错误';
+    setStatus('Mermaid 语法需要调整', 'error');
+  }
+}
+
+function detectType(text) {
+  const first = text.trim().split(/\s+/)[0].toLowerCase();
+  const map = {
+    graph: '流程图', flowchart: '流程图', sequencediagram: '时序图', mindmap: '思维导图',
+    timeline: '时间线', gantt: '甘特图', pie: '饼图', quadrantchart: '象限图',
+    classdiagram: '类图', statediagram: '状态图', erdiagram: 'ER 图', journey: '旅程图'
+  };
+  return map[first] || 'Mermaid 图表';
+}
+
+function applyZoom() {
+  const v = $('#zoom').value;
+  diagramEl.style.transform = 'scale(' + (v / 100) + ')';
+  $('#zoom-label').textContent = v + '%';
+}
+
+function download(name, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function safeName() {
+  return 'mermaid-' + detectType(codeEl.value).replace(/\s+/g, '-').toLowerCase() + '.svg';
+}
+
+$('#samples').innerHTML = SAMPLES.map((s, i) =>
+  `<button class="chip${i === 0 ? ' active' : ''}" data-key="${s.key}" style="--dot:${s.dot}"><i></i>${s.name}</button>`
+).join('');
+
+document.querySelectorAll('.chip').forEach((chip) => {
+  chip.onclick = () => {
+    const sample = SAMPLES.find(s => s.key === chip.dataset.key);
+    document.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === chip));
+    codeEl.value = sample.code;
+    updateCount();
+    renderDiagram();
+  };
+});
+
+$('#render').onclick = renderDiagram;
+$('#theme').onchange = renderDiagram;
+$('#zoom').oninput = applyZoom;
+codeEl.addEventListener('input', () => { updateCount(); setStatus('内容已修改，点击渲染更新'); });
+
+$('#copy-code').onclick = async () => {
+  if (!codeEl.value.trim()) return setStatus('没有可复制的代码', 'error');
+  await navigator.clipboard.writeText(codeEl.value);
+  setStatus('Mermaid 代码已复制', 'ok');
+};
+
+$('#copy-svg').onclick = async () => {
+  if (!lastSvg) return setStatus('请先渲染图表', 'error');
+  await navigator.clipboard.writeText(lastSvg);
+  setStatus('SVG 已复制', 'ok');
+};
+
+$('#download-svg').onclick = () => {
+  if (!lastSvg) return setStatus('请先渲染图表', 'error');
+  download(safeName(), lastSvg, 'image/svg+xml;charset=utf-8');
+  setStatus('SVG 已下载', 'ok');
+};
+
+codeEl.value = SAMPLES[0].code;
+updateCount();
+renderDiagram();
+</script>
+</body>
+</html>
