@@ -4,7 +4,7 @@
   "description": "Personal about page for kongge.space",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist/skill dist/tools/xhs dist/tools/gzh dist/tools/aiwei && cp index.html dist/index.html && cp skill/index.html dist/skill/index.html && cp tools/xhs/index.html dist/tools/xhs/index.html && cp tools/gzh/index.html dist/tools/gzh/index.html && cp tools/aiwei/index.html dist/tools/aiwei/index.html",
+    "build": "rm -rf dist && mkdir -p dist/skill dist/tools dist/tools/xhs dist/tools/gzh dist/tools/aiwei dist/tools/jinci dist/tools/html dist/tools/mermaid dist/tools/video-gif dist/tools/all-recorder dist/tools/tianqi && cp index.html dist/index.html && cp skill/index.html dist/skill/index.html && cp tools/index.html dist/tools/index.html && cp tools/editorial.css dist/tools/editorial.css && cp tools/xhs/index.html dist/tools/xhs/index.html && cp tools/gzh/index.html dist/tools/gzh/index.html && cp tools/aiwei/index.html dist/tools/aiwei/index.html && cp tools/jinci/index.html dist/tools/jinci/index.html && cp tools/html/index.html dist/tools/html/index.html && cp tools/mermaid/index.html dist/tools/mermaid/index.html && cp tools/video-gif/index.html dist/tools/video-gif/index.html && cp tools/all-recorder/index.html dist/tools/all-recorder/index.html && cp tools/tianqi/index.html dist/tools/tianqi/index.html",
     "dev": "npm run build && wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name kong-space"
   },
