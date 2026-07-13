@@ -3,98 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="空格的键盘工具中心。">
-  <title>Tools · 空格的键盘</title>
-  <link rel="stylesheet" href="/tools/editorial.css">
-  <style>
-    .tools-intro { margin-bottom: 28px; }
-    .tools-kicker { margin: 0 0 10px; color: var(--ec-blue); font: 700 11px/1 var(--ec-mono); letter-spacing: .08em; }
-    .tools-title { max-width: 680px; margin: 0; font-size: 34px; line-height: 1.18; }
-    .tools-copy { max-width: 580px; margin: 12px 0 0; color: var(--ec-muted); font-size: 16px; line-height: 1.65; }
-    @media (max-width: 620px) { .tools-title { font-size: 28px; } .tools-copy { font-size: 15px; } }
-  </style>
+  <meta name="description" content="空格的键盘工具中心：写作、排版、检查、图表与本地媒体处理，都在浏览器里直接完成。">
+  <title>工具 · 空格的键盘</title>
+  <link rel="stylesheet" href="/site.css">
+  <script src="/nav.js" defer></script>
 </head>
-<body class="ec-shell">
-  <header class="ec-topbar">
-    <a class="ec-identity" href="/" aria-label="返回空格的键盘首页">
-      <span class="ec-back" aria-hidden="true">&#8592;</span>
-      <span>空格的键盘</span>
-    </a>
-  </header>
+<body>
+  <main class="site">
+    <p class="kicker">TOOLS</p>
+    <h1>我的工具</h1>
+    <p class="meta">写作、排版、检查、图表与本地媒体处理，都在浏览器里直接完成。</p>
 
-  <main class="ec-main">
-    <section class="tools-intro" aria-labelledby="tools-title">
-      <p class="tools-kicker">TOOL INDEX / 08</p>
-      <h1 class="tools-title" id="tools-title">八件趁手的小工具</h1>
-      <p class="tools-copy">写作、排版、检查、图表与本地媒体处理，都在浏览器里直接完成。</p>
-    </section>
+    <div class="cards" style="margin-top:24px">
+      <a class="card" href="/tools/xhs/">
+        <span class="no">01 · 写作</span>
+        <span class="t">公众号转小红书</span>
+        <p class="d">把文章或链接排成可直接发布的小红书图文卡片。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/gzh/">
+        <span class="no">02 · 排版</span>
+        <span class="t">公众号排版</span>
+        <p class="d">将 Markdown 转为可粘贴的公众号富文本。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/aiwei/">
+        <span class="no">03 · 检查</span>
+        <span class="t">AI 味检测</span>
+        <p class="d">找出 AI 写作痕迹，并获得具体替换建议。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/jinci/">
+        <span class="no">04 · 检查</span>
+        <span class="t">违禁词检测</span>
+        <p class="d">按平台识别内容风险词，发布前快速自查。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/html/">
+        <span class="no">05 · 预览</span>
+        <span class="t">HTML 预览</span>
+        <p class="d">即时渲染 HTML，在新窗口检查页面效果。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/mermaid/">
+        <span class="no">06 · 图表</span>
+        <span class="t">Mermaid 预览器</span>
+        <p class="d">把文本快速渲染成清晰的流程与关系图。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/video-gif/">
+        <span class="no">07 · 媒体</span>
+        <span class="t">视频转 GIF</span>
+        <p class="d">在本地裁剪视频片段并导出轻量 GIF。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/all-recorder/">
+        <span class="no">08 · 录制</span>
+        <span class="t">万物皆可录</span>
+        <p class="d">上传文件并录制一段完整的全屏讲解。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+      <a class="card" href="/tools/tianqi/">
+        <span class="no">09 · 生活</span>
+        <span class="t">今天天气怎么样</span>
+        <p class="d">毒舌天气播报，生活指数、城市 PK 与分享卡。</p>
+        <span class="go">打开工具 →</span>
+      </a>
+    </div>
 
-    <nav class="ec-card-grid" aria-label="工具列表">
-      <a class="ec-card" href="/tools/xhs/">
-        <div>
-          <p class="ec-card-kicker">01 / WRITING</p>
-          <h2 class="ec-card-title">公众号转小红书 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">把文章或链接排成可直接发布的小红书图文卡片。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/gzh/">
-        <div>
-          <p class="ec-card-kicker">02 / FORMAT</p>
-          <h2 class="ec-card-title">公众号排版 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">将 Markdown 转为可粘贴的公众号富文本。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/aiwei/">
-        <div>
-          <p class="ec-card-kicker">03 / CHECK</p>
-          <h2 class="ec-card-title">AI 味检测 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">找出 AI 写作痕迹，并获得具体替换建议。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/jinci/">
-        <div>
-          <p class="ec-card-kicker">04 / CHECK</p>
-          <h2 class="ec-card-title">违禁词检测 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">按平台识别内容风险词，发布前快速自查。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/html/">
-        <div>
-          <p class="ec-card-kicker">05 / PREVIEW</p>
-          <h2 class="ec-card-title">HTML 预览 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">即时渲染 HTML，在新窗口检查页面效果。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/mermaid/">
-        <div>
-          <p class="ec-card-kicker">06 / VISUAL</p>
-          <h2 class="ec-card-title">Mermaid 预览器 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">把文本快速渲染成清晰的流程与关系图。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/video-gif/">
-        <div>
-          <p class="ec-card-kicker">07 / MEDIA</p>
-          <h2 class="ec-card-title">视频转 GIF <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">在本地裁剪视频片段并导出轻量 GIF。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-      <a class="ec-card" href="/tools/all-recorder/">
-        <div>
-          <p class="ec-card-kicker">08 / RECORD</p>
-          <h2 class="ec-card-title">万物皆可录 <span class="ec-card-arrow" aria-hidden="true">&#8594;</span></h2>
-          <p class="ec-card-copy">上传文件并录制一段完整的全屏讲解。</p>
-        </div>
-        <p class="ec-card-date">2026.07.10</p>
-      </a>
-    </nav>
+    <p class="small" style="margin-top:26px">所有工具的处理都在你的浏览器本地完成，内容不会上传到任何服务器。</p>
+
+    <footer class="sitefoot">
+      © 空格的键盘 · Create over taste · Life over create · Share more, Gain more
+    </footer>
   </main>
 </body>
 </html>

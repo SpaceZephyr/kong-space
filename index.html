@@ -3,542 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="空格的个人介绍：产品经理、AI 开发者、自媒体人。">
-  <title>About 空格</title>
-  <style>
-    :root {
-      --bg: #fffdf8;
-      --text: #222;
-      --muted: #666;
-      --light: #888;
-      --line: #e8e2d6;
-      --link: #1756a9;
-      --link-hover: #0b3a75;
-      --code-bg: #f5efe4;
-      --button-bg: #fff7ea;
-      --button-text: #4d463b;
-      --button-border: #ded4c3;
-      --max: 760px;
-      color-scheme: light;
-    }
-
-    :root[data-theme="dark"] {
-      --bg: #11100d;
-      --text: #e9e0d1;
-      --muted: #b3a996;
-      --light: #8f8678;
-      --line: #312c24;
-      --link: #8db8ff;
-      --link-hover: #c4d9ff;
-      --code-bg: #211d18;
-      --button-bg: #1b1813;
-      --button-text: #dccfbb;
-      --button-border: #3b3429;
-      color-scheme: dark;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      color: var(--text);
-      background: var(--bg);
-      font-family: ui-serif, "Times New Roman", "Noto Serif CJK SC", "Songti SC", "STSong", serif;
-      font-size: 18px;
-      line-height: 1.78;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-      transition: background-color 180ms ease, color 180ms ease;
-    }
-
-    .site {
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 32px 22px 80px;
-    }
-
-    header {
-      margin-bottom: 54px;
-    }
-
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 16px;
-    }
-
-    .title {
-      display: inline-block;
-      margin: 0;
-      color: var(--text);
-      font-size: 28px;
-      font-weight: 700;
-      line-height: 1.2;
-      text-decoration: none;
-    }
-
-    .theme-toggle {
-      flex: none;
-      height: 34px;
-      padding: 0 12px;
-      border: 1px solid var(--button-border);
-      border-radius: 999px;
-      color: var(--button-text);
-      background: var(--button-bg);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 13px;
-      line-height: 1;
-      cursor: pointer;
-      transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
-    }
-
-    .theme-toggle:hover {
-      border-color: var(--muted);
-    }
-
-    .theme-toggle:focus-visible {
-      outline: 2px solid var(--link);
-      outline-offset: 3px;
-    }
-
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      color: var(--muted);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 15px;
-    }
-
-    nav a,
-    a {
-      color: var(--link);
-      text-decoration-thickness: 1px;
-      text-underline-offset: 3px;
-    }
-
-    nav a {
-      color: var(--muted);
-      text-decoration: none;
-    }
-
-    nav a:hover,
-    a:hover {
-      color: var(--link-hover);
-    }
-
-    h1,
-    h2,
-    h3,
-    h4 {
-      margin: 0;
-      line-height: 1.35;
-      font-weight: 700;
-    }
-
-    h1 {
-      margin-bottom: 28px;
-      font-size: 24px;
-    }
-
-    h2 {
-      margin-top: 46px;
-      margin-bottom: 22px;
-      padding-top: 36px;
-      border-top: 1px solid var(--line);
-      font-size: 23px;
-    }
-
-    h3 {
-      margin-top: 28px;
-      margin-bottom: 8px;
-      font-size: 17px;
-    }
-
-    p {
-      margin: 0 0 18px;
-    }
-
-    ul,
-    ol {
-      margin: 0 0 22px 1.35em;
-      padding: 0;
-    }
-
-    li {
-      margin: 8px 0;
-      padding-left: 2px;
-    }
-
-    strong {
-      font-weight: 700;
-    }
-
-    .intro {
-      margin-bottom: 8px;
-    }
-
-    .meta {
-      color: var(--muted);
-    }
-
-    .small {
-      color: var(--light);
-      font-size: 15px;
-    }
-
-    .product h3,
-    .yearlog h3 {
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      letter-spacing: 0.01em;
-    }
-
-    .product p,
-    .yearlog p {
-      margin-bottom: 8px;
-    }
-
-    .product + .product,
-    .yearlog + .yearlog {
-      margin-top: 24px;
-    }
-
-    .quote {
-      margin: 26px 0;
-      padding: 0 0 0 18px;
-      border-left: 3px solid var(--line);
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .review-list {
-      margin-top: 30px;
-      padding-top: 22px;
-      border-top: 1px dashed var(--line);
-    }
-
-    .review-list h3 {
-      margin-top: 0;
-      margin-bottom: 12px;
-    }
-
-    .review-list ul {
-      margin-bottom: 0;
-    }
-
-    .values {
-      list-style: none;
-      margin-left: 0;
-    }
-
-    .values li {
-      padding: 7px 0;
-      border-bottom: 1px dashed var(--line);
-    }
-
-    footer {
-      margin-top: 54px;
-      padding-top: 26px;
-      border-top: 1px solid var(--line);
-      color: var(--light);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 14px;
-    }
-
-    @media (max-width: 640px) {
-      body {
-        font-size: 16.5px;
-        line-height: 1.86;
-      }
-
-      .site {
-        padding: 30px 24px 72px;
-      }
-
-      header {
-        margin-bottom: 48px;
-      }
-
-      .header-top {
-        align-items: flex-start;
-        gap: 14px;
-        margin-bottom: 18px;
-      }
-
-      .title {
-        font-size: 25px;
-      }
-
-      .theme-toggle {
-        height: 32px;
-        padding: 0 11px;
-      }
-
-      nav {
-        gap: 8px 13px;
-        font-size: 14px;
-        line-height: 1.45;
-      }
-
-      h1 {
-        margin-bottom: 26px;
-        font-size: 22px;
-        line-height: 1.45;
-      }
-
-      h2 {
-        margin-top: 46px;
-        margin-bottom: 20px;
-        padding-top: 34px;
-        font-size: 21px;
-      }
-
-      h3 {
-        margin-top: 30px;
-        margin-bottom: 10px;
-        font-size: 16px;
-      }
-
-      p {
-        margin-bottom: 22px;
-      }
-
-      ul,
-      ol {
-        margin-bottom: 28px;
-        margin-left: 1.15em;
-      }
-
-      li {
-        margin: 12px 0;
-        padding-left: 4px;
-      }
-
-      .product p,
-      .yearlog p {
-        margin-bottom: 12px;
-      }
-
-      .product + .product,
-      .yearlog + .yearlog {
-        margin-top: 30px;
-      }
-
-      .quote {
-        margin: 30px 0;
-        padding-left: 16px;
-      }
-
-      footer {
-        margin-top: 62px;
-        line-height: 1.65;
-      }
-    }
-
-    @media (max-width: 380px) {
-      .site {
-        padding-right: 22px;
-        padding-left: 22px;
-      }
-    }
-  </style>
+  <meta name="description" content="空格：产品经理、AI 开发者、内容创作者。运营 AI 自媒体「空格的键盘」，做产品、做工具、做内容。">
+  <title>空格的键盘 · 产品经理 & AI 开发者</title>
+  <link rel="stylesheet" href="/site.css">
+  <script src="/nav.js" defer></script>
 </head>
 <body>
   <main class="site">
-    <header>
-      <div class="header-top">
-        <a class="title" href="#">空格的键盘</a>
-        <button class="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button>
+    <section id="hero">
+      <h1>Hi，可以叫我空格，or Zephyr</h1>
+      <p class="meta">产品经理 / AI 开发者 / 内容创作者 / INTJ / 水瓶座</p>
+      <p>我运营 AI 自媒体「空格的键盘」，全网约 10 万粉，连续 3 年分享 AI 探索经验，从提示词、上下文工程到 Agent、Skill。热衷 Vibe Coding，陆续上架 10 款产品，累积用户 5 万+；创作的 Skill 近 200 个，在 GitHub 收获数千 Star。</p>
+
+      <div class="contact-row">
+        <a class="contact-btn" href="mailto:wzfh520@gmail.com">✉️ 发送邮件</a>
+        <button class="contact-btn" id="copy-wx" type="button" data-wx="77213305">💬 复制微信号</button>
       </div>
-      <nav aria-label="站内导航">
-        <a href="#about">About</a>
-        <a href="#product">Product</a>
-        <a href="/skill/">Skill</a>
-        <a href="/tools/">Tools</a>
-        <a href="#yearlog">YearLog</a>
-        <a href="#content">Content</a>
-        <a href="#talk">Talk to me</a>
-      </nav>
-    </header>
+    </section>
 
-    <article id="about">
-      <h1>👋 Hi，可以叫我空格，这里是我的个人说明书。</h1>
+    <section id="services-teaser">
+      <h2>与我合作</h2>
+      <p class="meta">目前开放三类合作，点击查看详情。</p>
+      <div class="cards">
+        <a class="card" href="/services/#productivity">
+          <span class="no">01</span>
+          <span class="t">个人生产力系统</span>
+          <p class="d">把你的笔记、任务、知识库和 AI 工作流，搭成一套真的在跑的系统。</p>
+          <span class="aud">适合：想用 AI 提效的创作者与职场人</span>
+          <span class="go">查看详情 →</span>
+        </a>
+        <a class="card" href="/services/#consulting">
+          <span class="no">02</span>
+          <span class="t">企业咨询</span>
+          <p class="d">AI 落地与效率提升咨询，从场景梳理到工具链搭建。</p>
+          <span class="aud">适合：想引入 AI 工作流的中小团队</span>
+          <span class="go">查看详情 →</span>
+        </a>
+        <a class="card" href="/services/#interview">
+          <span class="no">03</span>
+          <span class="t">面试指导</span>
+          <p class="d">产品经理求职辅导，从简历打磨到模拟面试。</p>
+          <span class="aud">适合：准备跳槽或转岗产品经理的同学</span>
+          <span class="go">查看详情 →</span>
+        </a>
+      </div>
+    </section>
 
-      <p class="intro">可以叫我空格，or Space。1996 年生于洛阳，辽宁大学毕业，现居深圳。</p>
-      <p class="meta">我的性格：INTJ / 水瓶座</p>
-
-      <p>我运营 AI 自媒体「空格的键盘」，全网约 10 万粉。我连续 3 年在自媒体分享自己的 AI 探索经验，从最早的提示词、上下文工程，到现在的 Agent、Skill，都有积极的实践与产出。</p>
-
-      <p>我热衷于 Vibe Coding，陆续上架 10 款产品，累积用户 5 万+；创作的 Skill 近 200 个，在 GitHub 收获数千 Star。</p>
-
-      <p>我的本职是产品经理。毕业后做过一年开发，因为喜欢设计转向产品经理岗位，曾就职于国企、AI 创业团队和上市公司。职业经历里，一大半时间深耕 B 端，一半时间深耕全球化消费电子，擅长面向个人和企业服务的效率提升。产品能力与 AI 兴趣的结合，让我既能定义产品，也能独立把它做出来。</p>
-
-      <h2>我的身份</h2>
-      <ul>
-        <li><strong>产品经理：</strong>刚毕业时做过开发，转设计师失败后，入产品经理岗位。目前在一家上市公司担任产品经理。</li>
-        <li><strong>AI 开发者：</strong>凭兴趣上线了 10 个小产品，现在还有用户的有 5 个产品。</li>
-        <li><strong>自媒体人：</strong>运营个人 IP「空格的键盘」，个人知识库「产品星球」。</li>
-      </ul>
-
-      <h2>我的兴趣</h2>
-      <ul>
-        <li><strong>摄影：</strong>从大一拍到现在，热情减退了但初心还在。喜欢拍摄自然、建筑、人文题材。</li>
-        <li><strong>网球：</strong>大学学了两年，毕业 5 年后重新捡起，每周必打，2.5 冲刺 3.0。</li>
-        <li><strong>滑雪：</strong>每个雪季营业，带给我无限勇气和平静的爱好。</li>
-        <li><strong>徒步：</strong>每月至少营业一次，深圳的山已经不够我爬了，开始入坑露营和重装。</li>
-      </ul>
-
-      <h2>我在做什么</h2>
-      <ul>
-        <li><strong>上班：</strong>目前在一家上市公司担任产品经理。</li>
-        <li><strong>副业：</strong>知识库「产品星球」；个人 IP「空格的键盘」。</li>
-      </ul>
-
-      <h2>我的价值观</h2>
-      <ul class="values">
-        <li><strong>Create over taste</strong>丨比品味更重要的是创作</li>
-        <li><strong>Life over create</strong>丨比创作更重要的是生活</li>
-        <li><strong>Share more, Gain more</strong>丨分享越多，拥有越多</li>
-      </ul>
-    </article>
-
-    <section id="product">
-      <h2>🔨 Product</h2>
-      <p>这些是我做过、还在运行，或者对我有重要意义的产品：</p>
-
-      <div class="product">
+    <section id="products-teaser">
+      <h2>我的产品</h2>
+      <div class="rowitem">
         <h3>Readecho <a href="https://readecho.cn/" target="_blank" rel="noreferrer">[link]</a></h3>
         <p>同步微信读书笔记，AI 智能分析 + 定期回顾，释放知识的力量。</p>
       </div>
-
-      <div class="product">
+      <div class="rowitem">
         <h3>PrompterHub <a href="https://www.prompterhub.cn/" target="_blank" rel="noreferrer">[link]</a></h3>
         <p>AI 提示词管理平台，创建 / 管理 / 分享优质 Prompt。</p>
       </div>
-
-      <div class="product">
+      <div class="rowitem">
         <h3>Bilibili 无限历史记录 <a href="https://bilibilihistory.com/" target="_blank" rel="noreferrer">[link]</a></h3>
         <p>你的专属 B 站时光机，突破官方历史记录上限。</p>
       </div>
-
-      <div class="product">
-        <h3>心念贴纸 HeartSticker <a href="https://heartsticker.art/" target="_blank" rel="noreferrer">[link]</a></h3>
-        <p>AI 生成个性表情贴纸，让情感触手可及。</p>
-      </div>
-
-      <div class="product">
-        <h3>OnePod <a href="https://onepod.site/" target="_blank" rel="noreferrer">[link]</a></h3>
-        <p>Agent 自处理海外博客，把文章变成更容易消费的播客内容。</p>
-      </div>
+      <a class="more-link" href="/products/">查看全部产品 →</a>
     </section>
 
-    <section id="yearlog">
-      <h2>🎞️ YearLog</h2>
-
-      <div class="yearlog">
-        <h3>2015</h3>
-        <p>辽宁沈阳。大学时期，对一切都充满好奇，迷上了滑板、摄影、骑行、滑雪。</p>
+    <section id="tools-teaser">
+      <h2>我的工具</h2>
+      <p class="meta">写作、排版、检查、图表与本地媒体处理，都在浏览器里直接完成。</p>
+      <div class="rowitem">
+        <h3><a href="/tools/xhs/">公众号转小红书</a></h3>
+        <p>把文章或链接排成可直接发布的小红书图文卡片。</p>
       </div>
-
-      <div class="yearlog">
-        <h3>2019</h3>
-        <p>四川成都。职业迷茫期，随大流进入国企，做开发后裸辞学了一年设计。</p>
+      <div class="rowitem">
+        <h3><a href="/tools/gzh/">公众号排版</a></h3>
+        <p>Markdown 一键转公众号富文本，十种风格，粘贴不丢样式。</p>
       </div>
-
-      <div class="yearlog">
-        <h3>2020</h3>
-        <p>上海。设计转化未遂，被目标企业收编为产品经理。3 年的时间里，由 CTO 带队，对接数十家行业头部客户，做了多款创新性产品，培养了独当一面的职场能力、产品和技术素养。</p>
+      <div class="rowitem">
+        <h3><a href="/tools/aiwei/">AI 味检测</a></h3>
+        <p>高亮 AI 高频词句，给出替换建议和 AI 味指数。</p>
       </div>
-
-      <div class="yearlog">
-        <h3>2024</h3>
-        <p>深圳。在 AI 创业公司做了半年产品负责人后，转上市公司做产品经理。工作节奏快，团队做的是国内头部数码产品，还蛮有意思的。</p>
-      </div>
-
-      <div class="yearlog">
-        <h3>至今</h3>
-        <p>深圳。继续做 AI 探索，也继续把产品、内容、知识库和生活搭成一个系统。</p>
-      </div>
-
-      <div class="review-list">
-        <h3>Review</h3>
-        <ul>
-          <li><strong>2023：</strong><a href="https://mp.weixin.qq.com/s/dP6hWDYERKH8FCOxZGiufw" target="_blank" rel="noreferrer">我的 2023</a></li>
-          <li><strong>2025：</strong><a href="https://mp.weixin.qq.com/s/SPOH_g4SXSxXA1e3ozBBYQ" target="_blank" rel="noreferrer">我的 2025</a></li>
-        </ul>
-      </div>
+      <a class="more-link" href="/tools/">查看全部工具 →</a>
     </section>
 
-    <section id="content">
-      <h2>📝 Content</h2>
-      <p>我也积极在互联网分享实践经验，包括个人知识库搭建、自媒体 AI 创作流。我搭建的知识库「产品星球」有近万关注，帮助产品经理提升工作能力。</p>
-
+    <section id="elsewhere">
+      <h2>在别处找我</h2>
       <ul>
-        <li><strong>Notion：</strong><a href="https://www.notion.so/pmplanet/0825c5bf78b243d4945d8a5a458c7a8f?source=copy_link" target="_blank" rel="noreferrer">Where teams and agents work together</a></li>
-        <li><strong>AI-PAC：</strong><a href="https://my.feishu.cn/wiki/O8yVwdrGjid0nkkP46ccJwKCnOf" target="_blank" rel="noreferrer">社群内容</a></li>
         <li><strong>公众号：</strong>空格的键盘，AI 领域内容。</li>
         <li><strong>小红书 1：</strong><a href="https://xhslink.com/m/7IKqVTqRKp3" target="_blank" rel="noreferrer">AI 领域内容</a></li>
         <li><strong>小红书 2：</strong><a href="https://xhslink.com/m/39EXj6Cg1eJ" target="_blank" rel="noreferrer">产品领域内容</a></li>
         <li><strong>即刻：</strong><a href="https://okjk.co/aLMKg2" target="_blank" rel="noreferrer">日常分享和动态</a></li>
         <li><strong>哔哩哔哩：</strong><a href="https://b23.tv/USChDUV" target="_blank" rel="noreferrer">AI 领域视频</a></li>
+        <li><strong>Notion：</strong><a href="https://www.notion.so/pmplanet/0825c5bf78b243d4945d8a5a458c7a8f?source=copy_link" target="_blank" rel="noreferrer">Where teams and agents work together</a></li>
+        <li><strong>AI-PAC：</strong><a href="https://my.feishu.cn/wiki/O8yVwdrGjid0nkkP46ccJwKCnOf" target="_blank" rel="noreferrer">社群内容</a></li>
       </ul>
+      <p class="small">想更完整地了解我？看看 <a href="/about/">关于我</a>。</p>
     </section>
 
-    <section id="talk">
-      <h2>👋 Talk to me</h2>
-      <blockquote class="quote">
-        我遇到的所有最酷的人，都是通过我写的东西找到我的人。
-      </blockquote>
-      <p>如果你想和我聊聊 AI、产品、知识库、Vibe Coding、自媒体创作，或者只是想交换一下最近在做的有趣东西，欢迎从上面的任何一个平台找到我。</p>
-    </section>
-
-    <footer>
+    <footer class="sitefoot">
       © 空格的键盘 · Create over taste · Life over create · Share more, Gain more
     </footer>
   </main>
 
   <script>
-    (function () {
-      var root = document.documentElement;
-      var toggle = document.querySelector(".theme-toggle");
-      var storageKey = "kongge-space-theme";
-      var savedTheme = localStorage.getItem(storageKey);
-      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-
-      function resolveTheme() {
-        return savedTheme || (prefersDark.matches ? "dark" : "light");
-      }
-
-      function applyTheme(theme) {
-        root.dataset.theme = theme;
-        toggle.textContent = theme === "dark" ? "浅色" : "深色";
-        toggle.setAttribute("aria-pressed", String(theme === "dark"));
-      }
-
-      applyTheme(resolveTheme());
-
-      toggle.addEventListener("click", function () {
-        var nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
-        savedTheme = nextTheme;
-        localStorage.setItem(storageKey, nextTheme);
-        applyTheme(nextTheme);
+    document.getElementById('copy-wx').addEventListener('click', function () {
+      var id = document.getElementById('copy-wx').dataset.wx;
+      navigator.clipboard.writeText(id).then(function () {
+        var btn = document.getElementById('copy-wx');
+        var old = btn.textContent;
+        btn.textContent = '✅ 已复制';
+        setTimeout(function () { btn.textContent = old; }, 1600);
       });
-
-      prefersDark.addEventListener("change", function () {
-        if (!localStorage.getItem(storageKey)) {
-          applyTheme(resolveTheme());
-        }
-      });
-    })();
-
+    });
   </script>
 </body>
 </html>

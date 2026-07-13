@@ -1,0 +1,99 @@
+/* kongge.space 共享样式 · 暖纸衬线体系（沿用原首页），架构参考 jerryzhang.me */
+:root {
+  --bg: #fffdf8;
+  --text: #222;
+  --muted: #666;
+  --light: #888;
+  --line: #e8e2d6;
+  --link: #1756a9;
+  --link-hover: #0b3a75;
+  --code-bg: #f5efe4;
+  --button-bg: #fff7ea;
+  --button-text: #4d463b;
+  --button-border: #ded4c3;
+  --max: 760px;
+  --serif: ui-serif, "Times New Roman", "Noto Serif CJK SC", "Songti SC", "STSong", serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #11100d;
+  --text: #e9e0d1;
+  --muted: #b3a996;
+  --light: #8f8678;
+  --line: #312c24;
+  --link: #8db8ff;
+  --link-hover: #c4d9ff;
+  --code-bg: #211d18;
+  --button-bg: #1b1813;
+  --button-text: #dccfbb;
+  --button-border: #3b3429;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  margin: 0; color: var(--text); background: var(--bg);
+  font-family: var(--serif); font-size: 18px; line-height: 1.78;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+.site { max-width: var(--max); margin: 0 auto; padding: 40px 22px 80px; }
+
+h1, h2, h3, h4 { margin: 0; line-height: 1.35; font-weight: 700; }
+h1 { margin-bottom: 24px; font-size: 26px; }
+h2 { margin-top: 46px; margin-bottom: 22px; padding-top: 36px; border-top: 1px solid var(--line); font-size: 22px; }
+h3 { margin-top: 28px; margin-bottom: 8px; font-size: 17px; }
+p { margin: 0 0 18px; }
+ul, ol { margin: 0 0 22px 1.35em; padding: 0; }
+li { margin: 8px 0; padding-left: 2px; }
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--link-hover); }
+.meta { color: var(--muted); }
+.small { color: var(--light); font-size: 15px; }
+.kicker { color: var(--light); font-family: var(--sans); font-size: 13px; letter-spacing: 2px; margin: 0 0 14px; }
+
+/* 联系按钮（首页） */
+.contact-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 26px 0 8px; font-family: var(--sans); }
+.contact-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px;
+  border: 1px solid var(--button-border); border-radius: 999px;
+  background: var(--button-bg); color: var(--button-text);
+  font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+  transition: border-color 160ms ease;
+}
+.contact-btn:hover { border-color: var(--muted); color: var(--button-text); }
+.wechat-id { font-size: 13px; color: var(--light); }
+
+/* 卡片列表（服务/产品/工具） */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 10px; }
+@media (max-width: 620px) { .cards { grid-template-columns: 1fr; } }
+.card {
+  display: flex; flex-direction: column; gap: 6px; padding: 20px;
+  border: 1px solid var(--line); border-radius: 12px; text-decoration: none;
+  color: var(--text); background: transparent;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+.card:hover { border-color: var(--muted); transform: translateY(-1px); color: var(--text); }
+.card .no { font-family: var(--sans); font-size: 12px; letter-spacing: 1.5px; color: var(--link); font-weight: 700; }
+.card .t { font-size: 17px; font-weight: 700; }
+.card .d { font-size: 14.5px; color: var(--muted); line-height: 1.65; margin: 0; }
+.card .aud { font-size: 12.5px; color: var(--light); font-family: var(--sans); margin-top: 4px; }
+.card .go { font-size: 13px; color: var(--link); font-family: var(--sans); margin-top: auto; padding-top: 6px; }
+
+/* 行式列表（产品页 / 首页精选） */
+.rowitem { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.rowitem:last-child { border-bottom: none; }
+.rowitem h3 { margin: 0 0 4px; }
+.rowitem p { margin: 0; color: var(--muted); font-size: 15.5px; }
+.more-link { display: inline-block; margin-top: 14px; font-family: var(--sans); font-size: 14px; }
+
+.quote { margin: 26px 0; padding: 0 0 0 18px; border-left: 3px solid var(--line); color: var(--muted); font-style: italic; }
+footer.sitefoot { margin-top: 64px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--light); font-size: 14px; line-height: 1.65; }
+
+@media (max-width: 640px) {
+  body { font-size: 17px; }
+  .site { padding: 30px 22px 72px; }
+  h1 { font-size: 23px; }
+  h2 { font-size: 20px; margin-top: 40px; padding-top: 32px; }
+}
