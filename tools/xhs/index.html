@@ -34,6 +34,10 @@
   }
   .theme-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.08); }
   .theme-chip.active { border-color: var(--ec-ink); box-shadow: inset 0 -2px 0 var(--ec-ink); color: var(--ec-ink); }
+  .convert-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
+  .convert-status { min-height: 20px; color: var(--ec-faint); font: 500 13px/1.5 var(--ec-sans); }
+  .convert-status.error { color: var(--ec-danger); }
+  .convert-button { min-width: 152px; min-height: 42px; justify-content: center; }
   .ec-button:disabled { opacity: .5; cursor: default; }
   .ec-status.error { color: var(--ec-danger); }
 
@@ -56,6 +60,8 @@
   @media (max-width: 620px) {
     .xhs-panel-body { padding: 14px; }
     .result-bar { align-items: flex-start; flex-direction: column; }
+    .convert-row { align-items: stretch; flex-direction: column; }
+    .convert-button { width: 100%; }
   }
 
   /* ===== 卡片本体（1080 × 1440，导出尺寸） ===== */
@@ -149,6 +155,10 @@
             <button class="theme-chip" data-theme="claude"><span class="dot" style="background:#cc785c"></span>Claude</button>
           </div>
         </div>
+        <div class="convert-row">
+          <span class="convert-status" id="status-inline" aria-live="polite"></span>
+          <button class="ec-button ec-button--primary convert-button" id="go-inline" type="button">立即转换</button>
+        </div>
       </div>
     </div>
   </section>
@@ -171,7 +181,15 @@ let theme = 'notion';
 let article = null; // {title, author, date, blocks}
 
 const $ = (s) => document.querySelector(s);
-const status = (msg, err) => { const el = $('#status'); el.textContent = msg || ''; el.className = 'ec-status' + (err ? ' error' : ''); };
+const status = (msg, err) => {
+  const value = msg || '';
+  const top = $('#status');
+  const inline = $('#status-inline');
+  top.textContent = value;
+  top.className = 'ec-status' + (err ? ' error' : '');
+  inline.textContent = value;
+  inline.className = 'convert-status' + (err ? ' error' : '');
+};
 
 /* ============ UI 事件 ============ */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
@@ -187,6 +205,7 @@ document.querySelectorAll('.theme-chip').forEach(c => c.onclick = () => {
   if (article) render(); // 已生成时切主题即时重排
 });
 $('#go').onclick = generate;
+$('#go-inline').onclick = generate;
 $('#dl-all').onclick = downloadAll;
 
 /* ============ 输入解析 → blocks ============ */
@@ -263,8 +282,9 @@ function parseArticleHtml(data) {
 
 /* ============ 生成 ============ */
 async function generate() {
+  const buttons = [$('#go'), $('#go-inline')];
   try {
-    $('#go').disabled = true;
+    buttons.forEach(button => { button.disabled = true; });
     if (mode === 'text') {
       const raw = $('#ta').value.trim();
       if (!raw) { status('请先粘贴文章内容', true); return; }
@@ -284,7 +304,7 @@ async function generate() {
   } catch (e) {
     status('出错了：' + (e.message || e), true);
   } finally {
-    $('#go').disabled = false;
+    buttons.forEach(button => { button.disabled = false; });
   }
 }
 
