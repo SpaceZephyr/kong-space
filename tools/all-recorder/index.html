@@ -279,6 +279,7 @@ const rctx = recordCanvas.getContext('2d', { alpha: false });
 
 let selectedFile = null;
 let contentReady = false;
+let microphoneStream = null;
 let cameraStream = null;
 let cameraVideo = null;
 let mediaRecorder = null;
@@ -291,6 +292,9 @@ let lastBlob = null;
 let lastMime = '';
 let lastExt = 'webm';
 let currentName = 'recording';
+
+const AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true };
+const VIDEO_CONSTRAINTS = { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
 
 function fmtBytes(bytes) {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -312,6 +316,16 @@ function setStageStatus(message, type = '') {
 
 function setRenderMode(mode = '') {
   content.className = 'content' + (mode ? ' ' + mode + '-mode' : '');
+}
+
+function hasLiveTrack(stream, kind) {
+  if (!stream) return false;
+  const tracks = kind === 'audio' ? stream.getAudioTracks() : stream.getVideoTracks();
+  return tracks.some((track) => track.readyState === 'live');
+}
+
+function isRecording() {
+  return mediaRecorder?.state === 'recording';
 }
 
 function clearContent(mode = '') {
@@ -417,52 +431,104 @@ async function enterPreview() {
     await renderSelectedFile();
     contentReady = true;
     setStageStatus('预览就绪 · 内容仅在本地处理', 'ok');
-    $('#recordBtn').disabled = !cameraStream;
-    await openCamera(true);
+    $('#recordBtn').disabled = false;
+    await initializeMedia();
   } catch (error) {
     content.innerHTML = '<div class="loading">文件渲染失败</div>';
     setStageStatus('渲染失败：' + (error.message || error), 'error');
   }
 }
 
-async function openCamera(automatic = false) {
-  if (cameraStream) return;
+async function mountCameraVideo() {
+  cameraVideo = document.createElement('video');
+  cameraVideo.muted = true;
+  cameraVideo.autoplay = true;
+  cameraVideo.playsInline = true;
+  cameraVideo.srcObject = cameraStream;
+  cameraBox.innerHTML = '';
+  cameraBox.hidden = false;
+  cameraBox.append(cameraVideo);
+  await cameraVideo.play();
+  $('#cameraBtn').textContent = '关闭摄像头';
+  $('#cameraBtn').setAttribute('aria-pressed', 'true');
+}
+
+async function ensureMicrophone() {
+  if (hasLiveTrack(microphoneStream, 'audio')) return true;
+  const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: AUDIO_CONSTRAINTS });
+  microphoneStream = new MediaStream(stream.getAudioTracks());
+  return hasLiveTrack(microphoneStream, 'audio');
+}
+
+async function enableCamera(automatic = false) {
+  if (hasLiveTrack(cameraStream, 'video')) return true;
   if (!navigator.mediaDevices?.getUserMedia) {
-    setStageStatus('当前浏览器不支持摄像头录制', 'error');
-    return;
+    setStageStatus('当前浏览器不支持摄像头', 'error');
+    return false;
   }
-  setStageStatus(automatic ? '预览就绪 · 正在请求摄像头权限' : '正在请求摄像头权限');
+  setStageStatus(automatic ? '预览就绪 · 正在请求摄像头权限' : '正在开启摄像头');
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: { echoCancellation: true, noiseSuppression: true }
-    });
-    cameraVideo = document.createElement('video');
-    cameraVideo.muted = true;
-    cameraVideo.autoplay = true;
-    cameraVideo.playsInline = true;
-    cameraVideo.srcObject = cameraStream;
-    cameraBox.innerHTML = '';
-    cameraBox.append(cameraVideo);
-    await cameraVideo.play();
-    $('#cameraBtn').textContent = '摄像头已开启';
-    $('#cameraBtn').disabled = true;
-    $('#recordBtn').disabled = !contentReady;
-    setStageStatus('预览就绪 · 摄像头和麦克风已开启', 'ok');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: VIDEO_CONSTRAINTS, audio: false });
+    cameraStream = new MediaStream(stream.getVideoTracks());
+    await mountCameraVideo();
+    setStageStatus(isRecording() ? '录制中 · 摄像头已开启' : '预览就绪 · 摄像头已开启', 'ok');
+    return true;
   } catch (error) {
-    $('#cameraBtn').textContent = '重试摄像头';
+    $('#cameraBtn').textContent = '开启摄像头';
+    $('#cameraBtn').setAttribute('aria-pressed', 'false');
     setStageStatus('未开启摄像头：' + (error.message || error), 'error');
+    return false;
   }
 }
 
-function closeCamera() {
+function disableCamera() {
   if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
   cameraStream = null;
   cameraVideo = null;
-  cameraBox.innerHTML = '<div class="camera-empty">正在等待摄像头</div>';
+  cameraBox.innerHTML = '';
+  cameraBox.hidden = true;
   $('#cameraBtn').textContent = '开启摄像头';
-  $('#cameraBtn').disabled = false;
-  $('#recordBtn').disabled = true;
+  $('#cameraBtn').setAttribute('aria-pressed', 'false');
+  setStageStatus(
+    isRecording() ? '录制中 · 摄像头已关闭，麦克风继续录音' : '预览就绪 · 摄像头已关闭，麦克风保持开启',
+    'ok'
+  );
+}
+
+async function initializeMedia() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    cameraBox.hidden = true;
+    setStageStatus('预览就绪 · 当前浏览器不支持摄像头或麦克风', 'error');
+    return;
+  }
+  setStageStatus('预览就绪 · 正在请求摄像头和麦克风权限');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: VIDEO_CONSTRAINTS, audio: AUDIO_CONSTRAINTS });
+    microphoneStream = new MediaStream(stream.getAudioTracks());
+    cameraStream = new MediaStream(stream.getVideoTracks());
+    await mountCameraVideo();
+    setStageStatus('预览就绪 · 摄像头和麦克风已开启', 'ok');
+  } catch (combinedError) {
+    disableCamera();
+    try {
+      await ensureMicrophone();
+      setStageStatus('预览就绪 · 麦克风已开启，摄像头未开启', 'ok');
+    } catch (audioError) {
+      setStageStatus('预览就绪 · 未开启摄像头和麦克风', 'error');
+    }
+  }
+}
+
+function releaseMedia() {
+  if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+  if (microphoneStream) microphoneStream.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  microphoneStream = null;
+  cameraVideo = null;
+  cameraBox.innerHTML = '<div class="camera-empty">正在等待摄像头</div>';
+  cameraBox.hidden = false;
+  $('#cameraBtn').textContent = '开启摄像头';
+  $('#cameraBtn').setAttribute('aria-pressed', 'false');
 }
 
 function chooseMime() {
@@ -581,7 +647,7 @@ function updateTimer() {
 }
 
 async function startRecording() {
-  if (!contentReady || !cameraStream) return;
+  if (!contentReady) return;
   try {
     $('#recordBtn').hidden = true;
     $('#stopBtn').hidden = false;
@@ -592,7 +658,9 @@ async function startRecording() {
     await drawStageFrame();
 
     canvasStream = recordCanvas.captureStream(30);
-    cameraStream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+    microphoneStream?.getAudioTracks()
+      .filter((track) => track.readyState === 'live')
+      .forEach((track) => canvasStream.addTrack(track));
     const picked = chooseMime();
     lastMime = picked.mime || 'video/webm';
     lastExt = picked.ext;
@@ -628,7 +696,7 @@ function resetRecordingControls() {
   drawLoopActive = false;
   clearInterval(timerTick);
   $('#recordBtn').hidden = false;
-  $('#recordBtn').disabled = !cameraStream || !contentReady;
+  $('#recordBtn').disabled = !contentReady;
   $('#stopBtn').hidden = true;
   $('#stopBtn').disabled = false;
   $('#backBtn').disabled = false;
@@ -659,7 +727,7 @@ function downloadRecording() {
 
 function leavePreview() {
   if (mediaRecorder?.state === 'recording') return;
-  closeCamera();
+  releaseMedia();
   contentReady = false;
   previewView.hidden = true;
   uploadView.hidden = false;
@@ -668,7 +736,10 @@ function leavePreview() {
 
 $('#fileInput').addEventListener('change', (event) => chooseFile(event.target.files[0]));
 $('#confirmBtn').addEventListener('click', enterPreview);
-$('#cameraBtn').addEventListener('click', () => openCamera(false));
+$('#cameraBtn').addEventListener('click', () => {
+  if (hasLiveTrack(cameraStream, 'video')) disableCamera();
+  else enableCamera(false);
+});
 $('#recordBtn').addEventListener('click', startRecording);
 $('#stopBtn').addEventListener('click', stopRecording);
 $('#downloadBtn').addEventListener('click', downloadRecording);
@@ -682,7 +753,7 @@ dropZone.addEventListener('drop', (event) => {
   chooseFile(event.dataTransfer.files[0]);
 });
 
-window.addEventListener('beforeunload', () => closeCamera());
+window.addEventListener('beforeunload', releaseMedia);
 </script>
 </body>
 </html>
