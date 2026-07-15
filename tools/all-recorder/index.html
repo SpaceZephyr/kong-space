@@ -174,6 +174,52 @@
   .result-chip { display: none; align-items: center; gap: 14px; padding: 8px 9px 8px 13px; border-radius: 7px; }
   .result-chip.show { display: flex; }
   .result-copy { color: rgba(255,255,255,.72); font-family: var(--mono); font-size: 11px; }
+
+  .teleprompter {
+    position: fixed; z-index: 19; top: 72px; right: 18px; width: min(360px, calc(100vw - 36px));
+    max-height: 62vh; overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 8px;
+    color: #fff; background: rgba(16,16,16,.94); box-shadow: 0 18px 46px rgba(0,0,0,.34);
+    backdrop-filter: blur(16px);
+  }
+  .teleprompter[hidden] { display: none; }
+  .prompter-head { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 8px 0 14px; border-bottom: 1px solid rgba(255,255,255,.12); }
+  .prompter-title { flex: 1; font-size: 13px; font-weight: 700; }
+  .prompter-icon {
+    display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 4px;
+    color: rgba(255,255,255,.72); background: transparent; font-size: 18px; cursor: pointer;
+  }
+  .prompter-icon:hover { color: #fff; background: rgba(255,255,255,.1); }
+  .prompter-body { display: flex; flex-direction: column; max-height: calc(62vh - 46px); }
+  .teleprompter.collapsed .prompter-head { border-bottom: 0; }
+  .teleprompter.collapsed .prompter-body { display: none; }
+  .prompter-edit, .prompter-read { display: flex; flex-direction: column; min-height: 0; }
+  .prompter-edit[hidden], .prompter-read[hidden] { display: none; }
+  .script-input {
+    width: 100%; min-height: 250px; max-height: calc(62vh - 110px); padding: 18px; resize: vertical;
+    border: 0; outline: 0; color: #f5f5f3; background: transparent; font: 500 18px/1.8 var(--sans);
+  }
+  .script-input::placeholder { color: rgba(255,255,255,.38); }
+  .prompter-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 10px; border-top: 1px solid rgba(255,255,255,.12); }
+  .prompter-btn {
+    height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+    color: #fff; background: transparent; font-size: 12px; font-weight: 650; cursor: pointer;
+  }
+  .prompter-btn:hover { background: rgba(255,255,255,.1); }
+  .prompter-btn.primary { border-color: var(--blue); background: var(--blue); }
+  .prompter-btn.primary:hover { background: var(--blue-dark); }
+  .script-reader {
+    min-height: 250px; overflow-y: auto; padding: 22px 22px 40px; color: #fff;
+    white-space: pre-wrap; overflow-wrap: anywhere; font-size: 22px; font-weight: 650; line-height: 1.85;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.3) transparent;
+  }
+  .prompter-toolbar { display: flex; align-items: center; gap: 7px; padding: 9px 10px; border-top: 1px solid rgba(255,255,255,.12); }
+  .speed-group { display: flex; align-items: center; padding: 2px; border: 1px solid rgba(255,255,255,.16); border-radius: 5px; }
+  .speed-btn {
+    width: 34px; height: 28px; border: 0; border-radius: 3px; color: rgba(255,255,255,.58);
+    background: transparent; font-size: 11px; cursor: pointer;
+  }
+  .speed-btn[aria-pressed="true"] { color: #111; background: #fff; font-weight: 700; }
+  .scroll-btn { flex: 1; }
   #recordCanvas { display: none; }
 
   @media (max-width: 720px) {
@@ -189,6 +235,10 @@
     .stage-file { max-width: 190px; }
     .control-btn { padding: 0 10px; }
     .control-btn .wide-label { display: none; }
+    .teleprompter { top: auto; right: 12px; bottom: 66px; width: calc(100vw - 24px); max-height: 48vh; }
+    .prompter-body { max-height: calc(48vh - 46px); }
+    .script-input, .script-reader { min-height: 180px; max-height: calc(48vh - 110px); }
+    .script-reader { font-size: 19px; }
   }
 </style>
   <script src="/nav.js" defer></script>
@@ -243,11 +293,40 @@
     <div class="recording-pill" id="recordingPill"><span class="recording-dot"></span><span id="timer">00:00</span></div>
     <div class="control-group">
       <button class="control-btn" id="backBtn" type="button" title="返回选择文件">返回</button>
-      <button class="control-btn" id="cameraBtn" type="button" title="开启摄像头和麦克风">开启摄像头</button>
+      <button class="control-btn" id="cameraBtn" type="button" title="开启或关闭个人摄像头" aria-pressed="false">开启摄像头</button>
       <button class="control-btn record-btn" id="recordBtn" type="button" disabled>开始录制</button>
       <button class="control-btn stop-btn" id="stopBtn" type="button" hidden>结束</button>
+      <button class="control-btn" id="scriptBtn" type="button" aria-expanded="false" aria-controls="teleprompter">口播脚本</button>
     </div>
   </div>
+
+  <aside class="teleprompter" id="teleprompter" data-html2canvas-ignore="true" hidden>
+    <header class="prompter-head">
+      <span class="prompter-title">口播提词器</span>
+      <button class="prompter-icon" id="collapseScriptBtn" type="button" title="收起提词器" aria-label="收起提词器">&minus;</button>
+      <button class="prompter-icon" id="closeScriptBtn" type="button" title="关闭提词器" aria-label="关闭提词器">&times;</button>
+    </header>
+    <div class="prompter-body">
+      <div class="prompter-edit" id="prompterEdit">
+        <textarea class="script-input" id="scriptInput" placeholder="把口播脚本粘贴到这里。录制时，提词器只对你可见。"></textarea>
+        <div class="prompter-actions">
+          <button class="prompter-btn primary" id="readScriptBtn" type="button">开始提词</button>
+        </div>
+      </div>
+      <div class="prompter-read" id="prompterRead" hidden>
+        <div class="script-reader" id="scriptReader" tabindex="0"></div>
+        <div class="prompter-toolbar">
+          <div class="speed-group" aria-label="自动滚动速度">
+            <button class="speed-btn" type="button" data-speed="slow" aria-pressed="false">慢</button>
+            <button class="speed-btn" type="button" data-speed="medium" aria-pressed="true">中</button>
+            <button class="speed-btn" type="button" data-speed="fast" aria-pressed="false">快</button>
+          </div>
+          <button class="prompter-btn scroll-btn" id="scrollScriptBtn" type="button" aria-pressed="false">自动滚动</button>
+          <button class="prompter-btn" id="editScriptBtn" type="button">编辑</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <div class="hud hud-bottom" data-html2canvas-ignore="true">
     <div class="result-chip" id="resultChip">
@@ -292,9 +371,15 @@ let lastBlob = null;
 let lastMime = '';
 let lastExt = 'webm';
 let currentName = 'recording';
+let promptMode = 'edit';
+let promptSpeed = 'medium';
+let promptFrame = 0;
+let promptLastFrame = 0;
+let promptRunning = false;
 
 const AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true };
 const VIDEO_CONSTRAINTS = { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
+const PROMPT_SPEEDS = { slow: 18, medium: 32, fast: 52 };
 
 function fmtBytes(bytes) {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -326,6 +411,76 @@ function hasLiveTrack(stream, kind) {
 
 function isRecording() {
   return mediaRecorder?.state === 'recording';
+}
+
+function stopPromptScroll() {
+  promptRunning = false;
+  cancelAnimationFrame(promptFrame);
+  promptFrame = 0;
+  $('#scrollScriptBtn').textContent = '自动滚动';
+  $('#scrollScriptBtn').setAttribute('aria-pressed', 'false');
+}
+
+function runPromptFrame(time) {
+  if (!promptRunning) return;
+  if (!promptLastFrame) promptLastFrame = time;
+  const delta = Math.min(48, time - promptLastFrame);
+  promptLastFrame = time;
+  const reader = $('#scriptReader');
+  reader.scrollTop += PROMPT_SPEEDS[promptSpeed] * delta / 1000;
+  if (reader.scrollTop + reader.clientHeight >= reader.scrollHeight - 1) {
+    stopPromptScroll();
+    return;
+  }
+  promptFrame = requestAnimationFrame(runPromptFrame);
+}
+
+function startPromptScroll() {
+  const reader = $('#scriptReader');
+  if (reader.scrollHeight <= reader.clientHeight + 1) return;
+  if (reader.scrollTop + reader.clientHeight >= reader.scrollHeight - 1) reader.scrollTop = 0;
+  promptRunning = true;
+  promptLastFrame = 0;
+  $('#scrollScriptBtn').textContent = '暂停滚动';
+  $('#scrollScriptBtn').setAttribute('aria-pressed', 'true');
+  promptFrame = requestAnimationFrame(runPromptFrame);
+}
+
+function setPrompterMode(mode) {
+  promptMode = mode;
+  stopPromptScroll();
+  const editing = mode === 'edit';
+  $('#prompterEdit').hidden = !editing;
+  $('#prompterRead').hidden = editing;
+  if (editing) {
+    requestAnimationFrame(() => $('#scriptInput').focus());
+  } else {
+    $('#scriptReader').textContent = $('#scriptInput').value.trim();
+    $('#scriptReader').scrollTop = 0;
+  }
+}
+
+function setPrompterOpen(open) {
+  const panel = $('#teleprompter');
+  panel.hidden = !open;
+  $('#scriptBtn').setAttribute('aria-expanded', String(open));
+  if (!open) {
+    stopPromptScroll();
+    panel.classList.remove('collapsed');
+    $('#collapseScriptBtn').innerHTML = '&minus;';
+    $('#collapseScriptBtn').title = '收起提词器';
+    return;
+  }
+  if (promptMode === 'edit') requestAnimationFrame(() => $('#scriptInput').focus());
+}
+
+function togglePrompterCollapse() {
+  const panel = $('#teleprompter');
+  const collapsed = panel.classList.toggle('collapsed');
+  if (collapsed) stopPromptScroll();
+  $('#collapseScriptBtn').textContent = collapsed ? '+' : '−';
+  $('#collapseScriptBtn').title = collapsed ? '展开提词器' : '收起提词器';
+  $('#collapseScriptBtn').setAttribute('aria-label', collapsed ? '展开提词器' : '收起提词器');
 }
 
 function clearContent(mode = '') {
@@ -727,6 +882,7 @@ function downloadRecording() {
 
 function leavePreview() {
   if (mediaRecorder?.state === 'recording') return;
+  setPrompterOpen(false);
   releaseMedia();
   contentReady = false;
   previewView.hidden = true;
@@ -744,6 +900,27 @@ $('#recordBtn').addEventListener('click', startRecording);
 $('#stopBtn').addEventListener('click', stopRecording);
 $('#downloadBtn').addEventListener('click', downloadRecording);
 $('#backBtn').addEventListener('click', leavePreview);
+$('#scriptBtn').addEventListener('click', () => setPrompterOpen($('#teleprompter').hidden));
+$('#closeScriptBtn').addEventListener('click', () => setPrompterOpen(false));
+$('#collapseScriptBtn').addEventListener('click', togglePrompterCollapse);
+$('#readScriptBtn').addEventListener('click', () => {
+  if (!$('#scriptInput').value.trim()) {
+    $('#scriptInput').focus();
+    return;
+  }
+  setPrompterMode('read');
+});
+$('#editScriptBtn').addEventListener('click', () => setPrompterMode('edit'));
+$('#scrollScriptBtn').addEventListener('click', () => {
+  if (promptRunning) stopPromptScroll();
+  else startPromptScroll();
+});
+document.querySelectorAll('.speed-btn').forEach((button) => {
+  button.addEventListener('click', () => {
+    promptSpeed = button.dataset.speed;
+    document.querySelectorAll('.speed-btn').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+  });
+});
 
 dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
