@@ -7,37 +7,29 @@
   <title>Skill · 空格的键盘</title>
   <style>
     :root {
-      --bg: #fffdf8;
-      --text: #222;
-      --muted: #666;
-      --light: #888;
-      --line: #e8e2d6;
-      --link: #1756a9;
-      --link-hover: #0b3a75;
-      --card-bg: #fffaf0;
-      --card-border: #e8e2d6;
-      --chip-bg: #f5efe4;
-      --button-bg: #fff7ea;
-      --button-text: #4d463b;
-      --button-border: #ded4c3;
-      --max: 860px;
+      --bg: #fafbfc;
+      --text: #0c0d10;
+      --muted: #5e5f66;
+      --light: #8a8b90;
+      --fill: rgba(12, 13, 16, .04);
+      --link: var(--text);
+      --link-underline: rgba(12, 13, 16, .3);
+      --card-bg: transparent;
+      --chip-bg: rgba(12, 13, 16, .05);
+      --max: 760px;
       color-scheme: light;
     }
 
     :root[data-theme="dark"] {
-      --bg: #11100d;
-      --text: #e9e0d1;
-      --muted: #b3a996;
-      --light: #8f8678;
-      --line: #312c24;
-      --link: #8db8ff;
-      --link-hover: #c4d9ff;
-      --card-bg: #17140f;
-      --card-border: #312c24;
-      --chip-bg: #211d18;
-      --button-bg: #1b1813;
-      --button-text: #dccfbb;
-      --button-border: #3b3429;
+      --bg: #000;
+      --text: #f2f2f3;
+      --muted: #9a9a9e;
+      --light: #737377;
+      --fill: rgba(255, 255, 255, .06);
+      --link: var(--text);
+      --link-underline: rgba(255, 255, 255, .32);
+      --card-bg: transparent;
+      --chip-bg: rgba(255, 255, 255, .07);
       color-scheme: dark;
     }
 
@@ -53,9 +45,9 @@
       margin: 0;
       color: var(--text);
       background: var(--bg);
-      font-family: ui-serif, "Times New Roman", "Noto Serif CJK SC", "Songti SC", "STSong", serif;
-      font-size: 18px;
-      line-height: 1.78;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       transition: background-color 180ms ease, color 180ms ease;
@@ -64,68 +56,20 @@
     .site {
       max-width: var(--max);
       margin: 0 auto;
-      padding: 32px 22px 86px;
+      padding: 64px 22px 96px;
     }
 
-    header {
-      margin-bottom: 54px;
-    }
-
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 16px;
-    }
-
-    .title {
-      margin: 0;
-      color: var(--text);
-      font-size: 28px;
-      font-weight: 700;
-      line-height: 1.2;
-      text-decoration: none;
-    }
-
-    .theme-toggle {
-      flex: none;
-      height: 34px;
-      padding: 0 12px;
-      border: 1px solid var(--button-border);
-      border-radius: 999px;
-      color: var(--button-text);
-      background: var(--button-bg);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 13px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      color: var(--muted);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 15px;
-    }
-
-    nav a,
     a {
       color: var(--link);
+      text-decoration-line: underline;
       text-decoration-thickness: 1px;
       text-underline-offset: 3px;
+      text-decoration-color: var(--link-underline);
+      transition: text-decoration-color 140ms ease;
     }
 
-    nav a {
-      color: var(--muted);
-      text-decoration: none;
-    }
-
-    a:hover,
-    nav a:hover {
-      color: var(--link-hover);
+    a:hover {
+      text-decoration-color: var(--text);
     }
 
     h1,
@@ -136,18 +80,24 @@
       font-weight: 700;
     }
 
+    .kicker {
+      color: var(--light);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin: 0 0 16px;
+    }
+
     h1 {
       max-width: 720px;
-      margin-bottom: 18px;
-      font-size: 32px;
-      letter-spacing: 0;
+      margin-bottom: 26px;
+      font-size: 40px;
+      letter-spacing: -0.01em;
     }
 
     h2 {
-      margin-top: 48px;
-      margin-bottom: 22px;
-      padding-top: 38px;
-      border-top: 1px solid var(--line);
+      margin-top: 72px;
+      margin-bottom: 24px;
       font-size: 23px;
     }
 
@@ -168,7 +118,7 @@
 
     .note {
       color: var(--light);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 14px;
     }
 
@@ -179,11 +129,19 @@
       margin-top: 22px;
     }
 
+    .repo-grid--single {
+      grid-template-columns: 1fr;
+    }
+
     .repo-card {
-      padding: 20px 20px 18px;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      padding: 22px 20px;
+      border-radius: 14px;
       background: var(--card-bg);
+      transition: background-color 160ms ease;
+    }
+
+    .repo-card:hover {
+      background: var(--fill);
     }
 
     .repo-card.featured {
@@ -199,7 +157,7 @@
     }
 
     .repo-name {
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 19px;
       line-height: 1.25;
     }
@@ -216,7 +174,7 @@
     .stars {
       flex: none;
       color: var(--muted);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 14px;
       white-space: nowrap;
     }
@@ -235,7 +193,7 @@
       border-radius: 999px;
       color: var(--muted);
       background: var(--chip-bg);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 13px;
       line-height: 1.35;
     }
@@ -248,11 +206,10 @@
 
     .flow {
       margin: 26px 0 0;
-      padding: 18px 20px;
-      border: 1px dashed var(--line);
-      border-radius: 8px;
+      padding: 20px 22px;
+      border-radius: 14px;
       color: var(--muted);
-      background: transparent;
+      background: var(--chip-bg);
     }
 
     .flow strong {
@@ -260,11 +217,9 @@
     }
 
     footer {
-      margin-top: 56px;
-      padding-top: 26px;
-      border-top: 1px solid var(--line);
+      margin-top: 80px;
       color: var(--light);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 14px;
     }
 
@@ -281,36 +236,11 @@
       }
 
       .site {
-        padding: 30px 24px 76px;
-      }
-
-      header {
-        margin-bottom: 48px;
-      }
-
-      .header-top {
-        align-items: flex-start;
-        gap: 14px;
-        margin-bottom: 18px;
-      }
-
-      .title {
-        font-size: 25px;
-      }
-
-      .theme-toggle {
-        height: 32px;
-        padding: 0 11px;
-      }
-
-      nav {
-        gap: 8px 13px;
-        font-size: 14px;
-        line-height: 1.45;
+        padding: 48px 22px 80px;
       }
 
       h1 {
-        font-size: 26px;
+        font-size: 30px;
         line-height: 1.42;
       }
 
@@ -348,22 +278,10 @@
 </head>
 <body>
   <main class="site">
-    <header>
-      <div class="header-top">
-        <a class="title" href="/">空格的键盘</a>
-        <button class="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button>
-      </div>
-      <nav aria-label="站内导航">
-        <a href="/">About</a>
-        <a href="#featured">Featured</a>
-        <a href="#buddy">Buddy</a>
-        <a href="#all">All Skills</a>
-      </nav>
-    </header>
-
     <article>
-      <h1>我开源的一些 Agent Skill</h1>
-      <p class="lead">这些 Skill 来自我真实的产品、内容和 AI 工作流。它们有些是独立工具，有些可以串起来用：先读资料，再判断选题热度，最后把内容做成图片、排版、海报或演示文稿。</p>
+      <p class="kicker">SKILL</p>
+      <h1>我的 Skill</h1>
+      <p class="lead">我开源的一些 Agent Skill，来自我真实的产品、内容和 AI 工作流。它们有些是独立工具，有些可以串起来用：先读资料，再判断选题热度，最后把内容做成图片、排版、海报或演示文稿。</p>
       <p class="note">Star 数为 2026-07-09 查询 GitHub 页面时的公开数据。</p>
 
       <section id="featured">
@@ -400,7 +318,7 @@
 
       <section id="buddy">
         <h2>Buddy 系列</h2>
-        <div class="repo-grid">
+        <div class="repo-grid repo-grid--single">
           <div class="repo-card">
             <div class="repo-head">
               <h3 class="repo-name"><a href="https://github.com/SpaceZephyr/design-buddy" target="_blank" rel="noreferrer">design-buddy</a></h3>
@@ -465,40 +383,5 @@
       © 空格的键盘 · Skills are context you can reuse.
     </footer>
   </main>
-
-  <script>
-    (function () {
-      var root = document.documentElement;
-      var toggle = document.querySelector(".theme-toggle");
-      var storageKey = "kongge-space-theme";
-      var savedTheme = localStorage.getItem(storageKey);
-      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-
-      function resolveTheme() {
-        return savedTheme || (prefersDark.matches ? "dark" : "light");
-      }
-
-      function applyTheme(theme) {
-        root.dataset.theme = theme;
-        toggle.textContent = theme === "dark" ? "浅色" : "深色";
-        toggle.setAttribute("aria-pressed", String(theme === "dark"));
-      }
-
-      applyTheme(resolveTheme());
-
-      toggle.addEventListener("click", function () {
-        var nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
-        savedTheme = nextTheme;
-        localStorage.setItem(storageKey, nextTheme);
-        applyTheme(nextTheme);
-      });
-
-      prefersDark.addEventListener("change", function () {
-        if (!localStorage.getItem(storageKey)) {
-          applyTheme(resolveTheme());
-        }
-      });
-    })();
-  </script>
 </body>
 </html>
