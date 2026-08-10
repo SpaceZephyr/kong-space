@@ -5,6 +5,14 @@
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
+export function isAllowedArticleUrl(url) {
+  return url.protocol === 'https:'
+    && url.hostname === 'mp.weixin.qq.com'
+    && !url.port
+    && !url.username
+    && !url.password;
+}
+
 function json(obj, code = 200) {
   return new Response(JSON.stringify(obj), {
     status: code,
@@ -12,8 +20,11 @@ function json(obj, code = 200) {
   });
 }
 
-async function fetchArticle(url) {
-  const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+async function fetchArticle(url, fetcher) {
+  const resp = await fetcher(url.href, {
+    headers: { 'User-Agent': UA },
+    redirect: 'error',
+  });
   if (!resp.ok) throw new Error('抓取失败 HTTP ' + resp.status);
   const html = await resp.text();
 
@@ -67,14 +78,25 @@ async function fetchArticle(url) {
   return { title, author, date, html: body };
 }
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, fetcher = fetch }) {
+  const rawTarget = new URL(request.url).searchParams.get('url');
+  if (!rawTarget) return json({ error: '缺少 url 参数' }, 400);
+
+  let target;
   try {
-    const target = new URL(request.url).searchParams.get('url');
-    if (!target) return json({ error: '缺少 url 参数' }, 400);
-    const data = await fetchArticle(target);
+    target = new URL(rawTarget);
+  } catch {
+    return json({ error: '无效的文章链接' }, 400);
+  }
+  if (!isAllowedArticleUrl(target)) {
+    return json({ error: '仅支持 mp.weixin.qq.com 的 HTTPS 文章链接' }, 403);
+  }
+
+  try {
+    const data = await fetchArticle(target, fetcher);
     if (!data.html) return json({ error: '未能解析出正文，试试直接粘贴文章内容' }, 422);
     return json(data);
-  } catch (e) {
-    return json({ error: String(e.message || e) }, 500);
+  } catch {
+    return json({ error: '文章抓取失败，请确认链接有效后重试' }, 502);
   }
 }
