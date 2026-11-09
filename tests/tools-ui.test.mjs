@@ -19,10 +19,19 @@ test('tools center lists eight tools with one launch date', () => {
   assert.match(html, /href=["']\/tools\/editorial\.css["']/);
 });
 
-test('homepage Tools navigation is a direct link', () => {
+test('homepage greets as 空格 and orders the four public sections', () => {
   const html = read('index.html');
-  assert.match(html, /<a href=["']\/tools\/["']>Tools<\/a>/);
-  assert.doesNotMatch(html, /tools-panel|tools-trigger|tools-menu/);
+  assert.match(html, /你好，我是\s*空格/);
+  assert.doesNotMatch(html, /可以叫我/);
+  assert.doesNotMatch(html, /小红书 2/);
+  assert.match(html, /https:\/\/x\.com\/kongge_space/);
+  const headings = [...html.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>/gi)].map((match) => match[1].replace(/<[^>]+>/g, '').trim());
+  assert.deepEqual(headings, ['我的产品', '与我合作', '我的工具', '在别处找到我']);
+  const elsewhere = html.match(/<section\b[^>]*id=["']elsewhere["'][^>]*>([\s\S]*?)<\/section>/i);
+  assert.ok(elsewhere, 'missing elsewhere section');
+  const items = elsewhere[1].match(/<li\b/gi) || [];
+  const icons = elsewhere[1].match(/<svg\b/gi) || [];
+  assert.equal(icons.length, items.length);
 });
 
 test('build copies catalog and shared stylesheet', () => {
