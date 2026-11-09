@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="空格：产品经理、AI 开发者、内容创作者。运营 AI 自媒体「空格的键盘」，做产品、做工具、做内容。">
   <title>空格的键盘 · 产品经理 & AI 开发者</title>
-  <link rel="stylesheet" href="./site.css?v=3">
+  <link rel="stylesheet" href="./site.css?v=4">
   <style>
     .socials { display: grid; gap: 8px; margin: 8px 0 22px; padding: 0; list-style: none; }
     .socials li { margin: 0; list-style: none; }
     .social { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 14px; border: 1px solid rgba(12, 13, 16, .08); border-radius: 14px; color: inherit; text-decoration: none; }
-    .social svg { display: block; width: 22px; height: 22px; max-width: 22px; flex: none; }
+    .social-brand { display: grid; place-items: center; width: 40px; height: 30px; flex: none; }
+    .social-brand img { display: block; max-width: 100%; height: auto; }
     .social-copy { display: grid; gap: 2px; min-width: 0; }
     .social-copy strong { font-size: 15px; line-height: 1.3; }
     .social-copy span { color: #5e5f66; font-size: 13.5px; font-weight: 400; line-height: 1.45; }
@@ -18,6 +19,7 @@
     :root[data-theme="dark"] .social { border-color: rgba(255, 255, 255, .12); }
     :root[data-theme="dark"] .social-copy span,
     :root[data-theme="dark"] a.social::after { color: #9a9a9e; }
+    :root[data-theme="dark"] .social-logo--mono { filter: invert(1); }
   </style>
   <script src="./nav.js" defer></script>
 </head>
@@ -108,43 +110,43 @@
       <ul class="socials">
         <li>
           <div class="social">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><path d="M8.2 15.6 5.2 17.2v-2.2A6.2 6.2 0 1 1 8.2 15.6Z"/><path d="M14.6 17.8 17.2 19.2v-1.8a4.8 4.8 0 1 0-2.6.4Z"/><path d="M6.7 9.2h.1M9.6 9.2h.1M14.2 13.4h.1M16.4 13.4h.1"/></svg>
+            <span class="social-brand" aria-hidden="true"><img src="./assets/social/wechat.svg" width="28" height="28" alt=""></span>
             <span class="social-copy"><strong>公众号</strong><span>空格的键盘，AI 领域内容。</span></span>
           </div>
         </li>
         <li>
           <a class="social" href="https://xhslink.com/m/7IKqVTqRKp3" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><path d="M7 4.5h8.2A2.8 2.8 0 0 1 18 7.3V20H8.4A2.4 2.4 0 0 1 6 17.6V4.5H7Z"/><path d="M9.2 4.5v5.6l2.3-1.4 2.3 1.4V4.5"/></svg>
+            <span class="social-brand" aria-hidden="true"><img src="./assets/social/xiaohongshu.png" width="40" height="19" alt=""></span>
             <span class="social-copy"><strong>小红书</strong><span>AI 领域内容</span></span>
           </a>
         </li>
         <li>
           <a class="social" href="https://x.com/kongge_space" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><path d="M5 5.5 19 18.5M19 5.5 5 18.5"/></svg>
+            <span class="social-brand" aria-hidden="true"><img class="social-logo--mono" src="./assets/social/x.svg" width="24" height="24" alt=""></span>
             <span class="social-copy"><strong>X</strong><span>@kongge_space</span></span>
           </a>
         </li>
         <li>
           <a class="social" href="https://okjk.co/aLMKg2" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><circle cx="12" cy="12" r="7.5"/><path d="M12.6 7.8 10 12.4h2.3l-.7 3.8 2.8-4.8h-2.2l.4-3.6Z"/></svg>
+            <span class="social-brand" aria-hidden="true"><img src="./assets/social/jike.png" width="28" height="28" alt=""></span>
             <span class="social-copy"><strong>即刻</strong><span>日常分享和动态</span></span>
           </a>
         </li>
         <li>
           <a class="social" href="https://b23.tv/USChDUV" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><rect x="3.5" y="6.5" width="17" height="11.5" rx="2"/><path d="M8 6.5 10.2 4M16 6.5 13.8 4M10.2 12.4l4.2-2.3v4.6l-4.2-2.3Z"/></svg>
+            <span class="social-brand" aria-hidden="true"><img src="./assets/social/bilibili.svg" width="29" height="28" alt=""></span>
             <span class="social-copy"><strong>哔哩哔哩</strong><span>AI 领域视频</span></span>
           </a>
         </li>
         <li>
           <a class="social" href="https://pmplanet.notion.site/0825c5bf78b243d4945d8a5a458c7a8f?pvs=73" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><circle cx="12" cy="12" r="7.5"/><path d="M4.5 12h15M12 4.5c2 2.2 3 4.8 3 7.5s-1 5.3-3 7.5c-2-2.2-3-4.8-3-7.5s1-5.3 3-7.5Z"/></svg>
+            <span class="social-brand" aria-hidden="true"><img class="social-logo--mono" src="./assets/social/notion.svg" width="27" height="28" alt=""></span>
             <span class="social-copy"><strong>产品星球</strong><span>产品经理的成长花园</span></span>
           </a>
         </li>
         <li>
           <a class="social" href="https://my.feishu.cn/wiki/O8yVwdrGjid0nkkP46ccJwKCnOf" target="_blank" rel="noreferrer">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><style>*{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}</style><circle cx="8" cy="9" r="2"/><circle cx="16" cy="9" r="2"/><path d="M4.6 17.8c.5-2.2 2-3.3 3.4-3.3s2.9 1.1 3.4 3.3M12.6 17.8c.5-2.2 2-3.3 3.4-3.3s2.9 1.1 3.4 3.3"/></svg>
+            <span class="social-brand" aria-hidden="true"><img src="./assets/social/feishu.png" width="28" height="28" alt=""></span>
             <span class="social-copy"><strong>AI-PAC</strong><span>社群内容</span></span>
           </a>
         </li>

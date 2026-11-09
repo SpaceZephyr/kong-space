@@ -4,7 +4,7 @@
   "description": "Personal about page for kongge.space",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir dist && cp index.html site.css nav.js dist/ && cp -R about services products blog skill tools dist/ && find dist -name 'README.md' -delete && find dist -name 'server.local.js' -delete",
+    "build": "rm -rf dist && mkdir dist && cp index.html site.css nav.js dist/ && cp -R about assets services products blog skill tools dist/ && find dist -name 'README.md' -delete && find dist -name 'server.local.js' -delete",
     "dev": "npm run build && wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name kong-space"
   },

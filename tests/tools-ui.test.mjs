@@ -30,8 +30,10 @@ test('homepage greets as 空格 and orders the four public sections', () => {
   const elsewhere = html.match(/<section\b[^>]*id=["']elsewhere["'][^>]*>([\s\S]*?)<\/section>/i);
   assert.ok(elsewhere, 'missing elsewhere section');
   const items = elsewhere[1].match(/<li\b/gi) || [];
-  const icons = elsewhere[1].match(/<svg\b/gi) || [];
+  const icons = [...elsewhere[1].matchAll(/<img\b[^>]*src=["']\.\/assets\/social\/([^"']+)["'][^>]*>/gi)];
   assert.equal(icons.length, items.length);
+  assert.equal(items.length, 7);
+  for (const icon of icons) assert.ok(existsSync(new URL(`../assets/social/${icon[1]}`, import.meta.url)), icon[1]);
 });
 
 test('build copies catalog and shared stylesheet', () => {
