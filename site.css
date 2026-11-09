@@ -146,8 +146,10 @@ a:hover { text-decoration-color: var(--link-underline-hover); }
 }
 a.social:hover { color: inherit; background: var(--fill); }
 .social svg {
-  width: 22px; height: 22px; flex: none; color: var(--text);
-  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  display: block; width: 22px; height: 22px; max-width: 22px; flex: none; overflow: hidden; color: var(--text);
+}
+.social svg * {
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
 }
 .social-copy { display: grid; gap: 1px; min-width: 0; }
 .social-copy strong { font-size: 15px; line-height: 1.3; }
